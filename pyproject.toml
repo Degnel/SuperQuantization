@@ -1,0 +1,13 @@
+[project]
+name = "superquantization"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "black>=24.10.0",
+    "matplotlib>=3.10.0",
+    "ruff>=0.8.3",
+    "torch>=2.5.1",
+    "torchvision>=0.20.1",
+]
