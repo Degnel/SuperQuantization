@@ -16,12 +16,19 @@ import torch
 import torch.nn as nn
 
 class QuantizedLayer(nn.Module):
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim, bias=False):
         super().__init__()
         self.weight = nn.Parameter(torch.randn(input_dim, output_dim, dtype=torch.float32))
+        if bias:
+            self.bias = nn.Parameter(torch.randn(output_dim, dtype=torch.float32))
+        else:
+            self.bias = None
 
     def forward(self, x):
-        return DiscreteMatrixMultiply.apply(x, self.weight)
+        if self.bias is None:
+            return DiscreteMatrixMultiply.apply(x, self.weight)
+        else:
+            return DiscreteMatrixMultiply.apply(x, self.weight) + self.bias
 
 class DiscreteMatrixMultiply(torch.autograd.Function):
     @staticmethod

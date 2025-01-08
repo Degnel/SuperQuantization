@@ -2,22 +2,25 @@ import torch
 import torch.nn as nn
 from super_quantization import QuantizedLayer
 
-class MNISTQuantizedNet(nn.Module):
-    def __init__(self, depth, input_dim=20, hidden_dim=20, output_dim=20):
+class MNISTNet(nn.Module):
+    def __init__(self, depth, input_dim=20, hidden_dim=20, output_dim=20, quantized=True):
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
-        self.layers = nn.ModuleList(
-            [QuantizedLayer(hidden_dim, hidden_dim) for _ in range(depth)]
-        )
-        self.in_layer = QuantizedLayer(input_dim, hidden_dim)
-        self.out_layer = QuantizedLayer(hidden_dim, output_dim)
-        # self.layers = nn.ModuleList(
-        #     [nn.Linear(hidden_dim, hidden_dim, False) for _ in range(depth)]
-        # )
-        # self.in_layer = nn.Linear(input_dim, hidden_dim, False)
-        # self.out_layer = nn.Linear(hidden_dim, output_dim, False)
+        if quantized:
+            self.layers = nn.ModuleList(
+                [QuantizedLayer(hidden_dim, hidden_dim) for _ in range(depth)]
+            )
+            self.in_layer = QuantizedLayer(input_dim, hidden_dim)
+            self.out_layer = QuantizedLayer(hidden_dim, output_dim)
+        else:
+            self.layers = nn.ModuleList(
+                [nn.Linear(hidden_dim, hidden_dim, False) for _ in range(depth)]
+            )
+            self.in_layer = nn.Linear(input_dim, hidden_dim, False)
+            self.out_layer = nn.Linear(hidden_dim, output_dim, False)
+        
         self.relu = nn.ReLU()
         self._initialize_weights()
 
