@@ -1,9 +1,12 @@
 import torch
 import torch.nn as nn
-from super_quantization import QuantizedLayer
+from super_quantization.super_quantization import QuantizedLayer
+
 
 class MNISTNet(nn.Module):
-    def __init__(self, depth, input_dim=20, hidden_dim=20, output_dim=20, quantized=True):
+    def __init__(
+        self, depth, input_dim=20, hidden_dim=20, output_dim=20, quantized=True
+    ):
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -20,16 +23,18 @@ class MNISTNet(nn.Module):
             )
             self.in_layer = nn.Linear(input_dim, hidden_dim, False)
             self.out_layer = nn.Linear(hidden_dim, output_dim, False)
-        
+
         self.relu = nn.ReLU()
         self._initialize_weights()
 
     def _initialize_weights(self):
         for layer in self.layers:
             with torch.no_grad():
-                layer.weight.copy_(torch.tensor([-1, 0, 1, 2], dtype=torch.float32)[
-                    torch.randint(0, 4, layer.weight.size(), dtype=torch.long)
-                ])
+                layer.weight.copy_(
+                    torch.tensor([-1, 0, 1, 2], dtype=torch.float32)[
+                        torch.randint(0, 4, layer.weight.size(), dtype=torch.long)
+                    ]
+                )
 
     def forward(self, x):
         skip = self.in_layer(x)

@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from quantized_net import QuantizedNet
 from full_net import FullPrecisionNet
 
+
 def raw_test():
     input_dim = 20
     hidden_dim = 20
@@ -22,7 +23,7 @@ def raw_test():
 
         full_model = FullPrecisionNet(depth_full, input_dim, hidden_dim)
         quant_model = QuantizedNet(depth_quant, input_dim, hidden_dim)
-        
+
         mse_full_to_quant = train_model(full_model, quant_model, data, True)
         mse_results_full_to_quant.append(mse_full_to_quant)
         print("MSE Full to Quantized: ", mse_full_to_quant)
@@ -34,19 +35,22 @@ def raw_test():
         mse_results_quant_to_full.append(mse_quant_to_full)
         print("MSE Quantized to Full: ", mse_quant_to_full)
 
-
-
     plt.figure(figsize=(10, 6))
     plt.plot(depths_full, mse_results_full_to_quant, label="Quantized imitates Full")
     plt.plot(depths_full, mse_results_quant_to_full, label="Full imitates Quantized")
     plt.xlabel("Depth of Full Precision Network")
     plt.ylabel("MSE Loss")
-    plt.title("MSE vs Depth: Quantized vs Full Precision Networks (with Skip Connections)")
+    plt.title(
+        "MSE vs Depth: Quantized vs Full Precision Networks (with Skip Connections)"
+    )
     plt.legend()
     plt.grid()
     plt.show()
 
-def train_model(target_model, train_model, data, full2quant, epochs=100, lr=0.01, grad_clamp = 1):
+
+def train_model(
+    target_model, train_model, data, full2quant, epochs=100, lr=0.01, grad_clamp=1
+):
     if full2quant:
         lr *= 10
         grad_clamp /= 10
@@ -64,9 +68,8 @@ def train_model(target_model, train_model, data, full2quant, epochs=100, lr=0.01
         loss = criterion(output, target_output)
         loss.backward()
         torch.nn.utils.clip_grad_value_(train_model.parameters(), grad_clamp)
-        # torch.nn.utils.clip_grad_norm_(train_model.parameters(), grad_clamp)
         optimizer.step()
-        
+
         print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item()}")
 
     return loss.item()

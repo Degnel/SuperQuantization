@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
+
 class FullPrecisionNet(nn.Module):
     def __init__(self, depth, input_dim=20, hidden_dim=20):
         super().__init__()

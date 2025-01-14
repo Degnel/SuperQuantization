@@ -1,6 +1,7 @@
 import torch.nn as nn
 from .single import Attention
-from super_quantization import QuantizedLayer
+from super_quantization.super_quantization import QuantizedLayer
+
 
 class MultiHeadedAttention(nn.Module):
     """
@@ -15,7 +16,9 @@ class MultiHeadedAttention(nn.Module):
         self.d_k = d_model // h
         self.h = h
 
-        self.linear_layers = nn.ModuleList([nn.Linear(d_model, d_model) for _ in range(3)])
+        self.linear_layers = nn.ModuleList(
+            [nn.Linear(d_model, d_model) for _ in range(3)]
+        )
         if quantize:
             self.output_linear = QuantizedLayer(d_model, d_model)
         else:
@@ -29,11 +32,15 @@ class MultiHeadedAttention(nn.Module):
         batch_size = query.size(0)
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
-        query, key, value = [l(x).view(batch_size, -1, self.h, self.d_k).transpose(1, 2)
-                             for l, x in zip(self.linear_layers, (query, key, value))]
+        query, key, value = [
+            l(x).view(batch_size, -1, self.h, self.d_k).transpose(1, 2)
+            for l, x in zip(self.linear_layers, (query, key, value))
+        ]
 
         # 2) Apply attention on all the projected vectors in batch.
-        x, attn = self.attention(query, key, value, mask=mask, dropout=self.dropout, quantize=self.quantize)
+        x, attn = self.attention(
+            query, key, value, mask=mask, dropout=self.dropout, quantize=self.quantize
+        )
 
         # 3) "Concat" using a view and apply a final linear.
         x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.h * self.d_k)

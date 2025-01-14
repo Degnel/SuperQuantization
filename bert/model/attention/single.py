@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-from super_quantization import DiscreteMatrixMultiply
+from super_quantization.super_quantization import DiscreteMatrixMultiply
 
 import math
 
@@ -13,11 +13,13 @@ class Attention(nn.Module):
 
     def forward(self, query, key, value, mask=None, dropout=None, quantize=False):
         if quantize:
-            scores = DiscreteMatrixMultiply(query, key.transpose(-2, -1)) \
-                    / math.sqrt(query.size(-1))
+            scores = DiscreteMatrixMultiply.apply(
+                query, key.transpose(-2, -1)
+            ) / math.sqrt(query.size(-1))
         else:
-            scores = torch.matmul(query, key.transpose(-2, -1)) \
-                    / math.sqrt(query.size(-1))
+            scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(
+                query.size(-1)
+            )
 
         if mask is not None:
             scores = scores.masked_fill(mask == 0, -1e9)
@@ -28,6 +30,6 @@ class Attention(nn.Module):
             p_attn = dropout(p_attn)
 
         if quantize:
-            return DiscreteMatrixMultiply(p_attn, value), p_attn
+            return DiscreteMatrixMultiply.apply(p_attn, value), p_attn
         else:
             return torch.matmul(p_attn, value), p_attn

@@ -20,10 +20,20 @@ class BERTTrainer:
 
     """
 
-    def __init__(self, bert: BERT, vocab_size: int,
-                 train_dataloader: DataLoader, test_dataloader: DataLoader = None,
-                 lr: float = 1e-4, betas=(0.9, 0.999), weight_decay: float = 0.01, warmup_steps=10000,
-                 with_cuda: bool = True, cuda_devices=None, log_freq: int = 10):
+    def __init__(
+        self,
+        bert: BERT,
+        vocab_size: int,
+        train_dataloader: DataLoader,
+        test_dataloader: DataLoader = None,
+        lr: float = 1e-4,
+        betas=(0.9, 0.999),
+        weight_decay: float = 0.01,
+        warmup_steps=10000,
+        with_cuda: bool = True,
+        cuda_devices=None,
+        log_freq: int = 10,
+    ):
         """
         :param bert: BERT model which you want to train
         :param vocab_size: total word vocab size
@@ -55,8 +65,12 @@ class BERTTrainer:
         self.test_data = test_dataloader
 
         # Setting the Adam optimizer with hyper-param
-        self.optim = Adam(self.model.parameters(), lr=lr, betas=betas, weight_decay=weight_decay)
-        self.optim_schedule = ScheduledOptim(self.optim, self.bert.hidden, n_warmup_steps=warmup_steps)
+        self.optim = Adam(
+            self.model.parameters(), lr=lr, betas=betas, weight_decay=weight_decay
+        )
+        self.optim_schedule = ScheduledOptim(
+            self.optim, self.bert.hidden, n_warmup_steps=warmup_steps
+        )
 
         # Using Negative Log Likelihood Loss function for predicting the masked_token
         self.criterion = nn.NLLLoss(ignore_index=0)
@@ -85,10 +99,12 @@ class BERTTrainer:
         str_code = "train" if train else "test"
 
         # Setting the tqdm progress bar
-        data_iter = tqdm.tqdm(enumerate(data_loader),
-                              desc="EP_%s:%d" % (str_code, epoch),
-                              total=len(data_loader),
-                              bar_format="{l_bar}{r_bar}")
+        data_iter = tqdm.tqdm(
+            enumerate(data_loader),
+            desc="EP_%s:%d" % (str_code, epoch),
+            total=len(data_loader),
+            bar_format="{l_bar}{r_bar}",
+        )
 
         avg_loss = 0.0
         total_correct = 0
@@ -99,13 +115,17 @@ class BERTTrainer:
             data = {key: value.to(self.device) for key, value in data.items()}
 
             # 1. forward the next_sentence_prediction and masked_lm model
-            next_sent_output, mask_lm_output = self.model.forward(data["bert_input"], data["segment_label"])
+            next_sent_output, mask_lm_output = self.model.forward(
+                data["bert_input"], data["segment_label"]
+            )
 
             # 2-1. NLL(negative log likelihood) loss of is_next classification result
             next_loss = self.criterion(next_sent_output, data["is_next"])
 
             # 2-2. NLLLoss of predicting masked token word
-            mask_loss = self.criterion(mask_lm_output.transpose(1, 2), data["bert_label"])
+            mask_loss = self.criterion(
+                mask_lm_output.transpose(1, 2), data["bert_label"]
+            )
 
             # 2-3. Adding next_loss and mask_loss : 3.4 Pre-training Procedure
             loss = next_loss + mask_loss
@@ -127,14 +147,18 @@ class BERTTrainer:
                 "iter": i,
                 "avg_loss": avg_loss / (i + 1),
                 "avg_acc": total_correct / total_element * 100,
-                "loss": loss.item()
+                "loss": loss.item(),
             }
 
             if i % self.log_freq == 0:
                 data_iter.write(str(post_fix))
 
-        print("EP%d_%s, avg_loss=" % (epoch, str_code), avg_loss / len(data_iter), "total_acc=",
-              total_correct * 100.0 / total_element)
+        print(
+            "EP%d_%s, avg_loss=" % (epoch, str_code),
+            avg_loss / len(data_iter),
+            "total_acc=",
+            total_correct * 100.0 / total_element,
+        )
 
     def save(self, epoch, file_path="output/bert_trained.model"):
         """

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from super_quantization import QuantizedLayer
+from super_quantization.super_quantization import QuantizedLayer
+
 
 class QuantizedNet(nn.Module):
     def __init__(self, depth, input_dim=20, hidden_dim=20):
@@ -16,9 +17,11 @@ class QuantizedNet(nn.Module):
     def _initialize_weights(self):
         for layer in self.layers:
             with torch.no_grad():
-                layer.weight.copy_(torch.tensor([-1, 0, 1, 2], dtype=torch.float32)[
-                    torch.randint(0, 4, layer.weight.size(), dtype=torch.long)
-                ])
+                layer.weight.copy_(
+                    torch.tensor([-1, 0, 1, 2], dtype=torch.float32)[
+                        torch.randint(0, 4, layer.weight.size(), dtype=torch.long)
+                    ]
+                )
 
     def forward(self, x):
         skip = x

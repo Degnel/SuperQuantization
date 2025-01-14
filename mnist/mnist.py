@@ -7,6 +7,7 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import random
 
+
 def mnist():
     input_dim = 784
     hidden_dim = 2
@@ -18,13 +19,16 @@ def mnist():
     if quantized:
         hidden_dim *= 8
 
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))
-    ])
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
+    )
 
-    train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-    test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    train_dataset = datasets.MNIST(
+        root="./data", train=True, download=True, transform=transform
+    )
+    test_dataset = datasets.MNIST(
+        root="./data", train=False, download=True, transform=transform
+    )
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -40,8 +44,9 @@ def train_model(model: nn.Module, train_loader, epochs=2, lr=0.01, grad_clamp=0.
     for epoch in range(epochs):
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):
-            data, target = data.to('cuda' if torch.cuda.is_available() else 'cpu'), \
-                        target.to('cuda' if torch.cuda.is_available() else 'cpu')
+            data, target = data.to(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            ), target.to("cuda" if torch.cuda.is_available() else "cpu")
             model = model.to(data.device)
             data = data.view(data.size(0), -1)
             outputs = model(data)
@@ -52,19 +57,23 @@ def train_model(model: nn.Module, train_loader, epochs=2, lr=0.01, grad_clamp=0.
             optimizer.step()
 
             if (batch_idx + 1) % 100 == 0:
-                print(f"Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {loss.item():.4f}")
+                print(
+                    f"Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {loss.item():.4f}"
+                )
 
     return loss.item()
+
 
 def brut_force_train(model: nn.Module, train_loader, epochs=2):
     criterion = nn.CrossEntropyLoss()
     for epoch in range(epochs):
-        print('Epoch', epoch)
+        print("Epoch", epoch)
         model.eval()
         for batch_idx, (data, target) in enumerate(train_loader):
-            print('Training step', batch_idx)
-            data, target = data.to('cuda' if torch.cuda.is_available() else 'cpu'), \
-                        target.to('cuda' if torch.cuda.is_available() else 'cpu')
+            print("Training step", batch_idx)
+            data, target = data.to(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            ), target.to("cuda" if torch.cuda.is_available() else "cpu")
             model = model.to(data.device)
             data = data.view(data.size(0), -1)
             for params in model.parameters():
@@ -82,7 +91,10 @@ def brut_force_train(model: nn.Module, train_loader, epochs=2):
                     loss = min(initial_loss, modified_loss)
 
             if (batch_idx + 1) % 100 == 0:
-                print(f"Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {loss.item():.4f}")
+                print(
+                    f"Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {loss.item():.4f}"
+                )
+
 
 def test_model(model, test_loader):
     model.eval()
@@ -90,13 +102,14 @@ def test_model(model, test_loader):
     total = 0
     with torch.no_grad():
         for data, target in test_loader:
-            data, target = data.to('cuda' if torch.cuda.is_available() else 'cpu'), \
-                        target.to('cuda' if torch.cuda.is_available() else 'cpu')
+            data, target = data.to(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            ), target.to("cuda" if torch.cuda.is_available() else "cpu")
             data = data.view(data.size(0), -1)
             outputs = model(data)
             _, predicted = torch.max(outputs, 1)
             total += target.size(0)
             correct += (predicted == target).sum().item()
 
-    print(f'Accuracy on test set: {100 * correct / total:.2f}%')
+    print(f"Accuracy on test set: {100 * correct / total:.2f}%")
     return 100 * correct / total
