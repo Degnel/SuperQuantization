@@ -15,12 +15,12 @@ n_heads = 1
 sq_n_heads = 16
 d_ff = 6
 sq_d_ff = 6
-max_depth = 4
+max_depth = 1
 quantize_Q = True
 quantize_K = True
 quantize_V = True
-quantize_fc_1 = False
-quantize_fc_2 = False
+quantize_fc_1 = True
+quantize_fc_2 = True
 
 # Create competing architectures
 sq_transformer_params = [
@@ -28,7 +28,7 @@ sq_transformer_params = [
         "d_model": d_model,
         "n_heads": sq_n_heads,
         "d_ff": sq_d_ff,
-        "depth": i + 1,
+        "depth": i + 4,
         "quantize_Q": quantize_Q,
         "quantize_K": quantize_K,
         "quantize_V": quantize_V,
@@ -43,7 +43,7 @@ transformer_params = [
         "d_model": d_model,
         "n_heads": n_heads,
         "d_ff": d_ff,
-        "depth": i + 1,
+        "depth": i + 4,
     }
     for i in range(max_depth)
 ]
@@ -53,7 +53,7 @@ full_transformer_params = [
         "d_model": d_model,
         "n_heads": sq_n_heads,
         "d_ff": sq_d_ff,
-        "depth": i + 1,
+        "depth": i + 4,
     }
     for i in range(max_depth)
 ]
@@ -86,12 +86,14 @@ def bit_diff(boolean):
 
 
 # Create architectural spaces
+epoch = [i+7 for i in range(max_depth)]
+
 sq_transformer_mesurement = [
     mesure_information(
         d_model,
         d_ff,
         sq_n_heads,
-        i + 1,
+        i + 4,
         quantize_Q,
         quantize_K,
         quantize_V,
@@ -106,11 +108,12 @@ sq_transformer_space = ArchitecturalSpace(
     "Super Quantized Transformer",
     Transformer,
     sq_transformer_params,
+    epoch=epoch,
     mesurement=sq_transformer_mesurement,
 )
 
 transformer_mesurement = [
-    mesure_information(d_model, d_ff, n_heads, i + 1) for i in range(max_depth)
+    mesure_information(d_model, d_ff, n_heads, i + 4) for i in range(max_depth)
 ]
 
 transformer_space = ArchitecturalSpace(
@@ -118,11 +121,12 @@ transformer_space = ArchitecturalSpace(
     "Transformer",
     Transformer,
     transformer_params,
+    epoch=epoch,
     mesurement=transformer_mesurement,
 )
 
 full_transformer_mesurement = [
-    mesure_information(d_model, d_ff, sq_n_heads, i + 1) for i in range(max_depth)
+    mesure_information(d_model, d_ff, sq_n_heads, i + 4) for i in range(max_depth)
 ]
 
 full_transformer_space = ArchitecturalSpace(
@@ -130,6 +134,7 @@ full_transformer_space = ArchitecturalSpace(
     "Full Transformer",
     Transformer,
     full_transformer_params,
+    epoch=epoch,
     mesurement=full_transformer_mesurement,
 )
 
