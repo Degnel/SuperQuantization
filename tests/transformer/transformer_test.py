@@ -1,6 +1,7 @@
 from transformer import Transformer
 from density.space import ArchitecturalSpace
 from density.probabilistic_density import ArchitectureComparator
+from torch import optim
 
 """
 In this exemple we are comparing 3 transformers with the same general architecture
@@ -19,8 +20,8 @@ max_depth = 1
 quantize_Q = True
 quantize_K = True
 quantize_V = True
-quantize_fc_1 = True
-quantize_fc_2 = True
+quantize_fc_1 = False
+quantize_fc_2 = False
 
 # Create competing architectures
 sq_transformer_params = [
@@ -86,7 +87,7 @@ def bit_diff(boolean):
 
 
 # Create architectural spaces
-epoch = [i+7 for i in range(max_depth)]
+epoch = [i+70 for i in range(max_depth)]
 
 sq_transformer_mesurement = [
     mesure_information(
@@ -108,8 +109,11 @@ sq_transformer_space = ArchitecturalSpace(
     "Super Quantized Transformer",
     Transformer,
     sq_transformer_params,
+    lr=0.001,
+    mini_batch_size=16,   
     epoch=epoch,
     mesurement=sq_transformer_mesurement,
+    optimizer=optim.AdamW
 )
 
 transformer_mesurement = [

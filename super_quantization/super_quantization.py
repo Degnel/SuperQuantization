@@ -4,10 +4,12 @@ from math import sqrt
 
 
 class QuantizedLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, bias=False, lr_scale=1) -> None:
+    def __init__(self, input_dim, output_dim, bias=True, lr_scale=1) -> None:
         super().__init__()
         std = sqrt(2 / input_dim)
         self.weight = nn.Parameter(
+            # (torch.randint(0, 4, (input_dim, output_dim)) - 1).float()
+            # torch.zeros(input_dim, output_dim, dtype=torch.float32),
             torch.randn(input_dim, output_dim, dtype=torch.float32) * std
         )
         if bias:
@@ -41,8 +43,13 @@ class DiscreteMatrixMultiply(torch.autograd.Function):
         lr_scale = ctx.lr_scale
         quantized_weight = torch.round(torch.clamp(weight_matrix, -1, 2))
         grad_input = grad_output @ quantized_weight.transpose(-1, -2)
+        # grad_input = grad_output @ weight_matrix.transpose(-1, -2)
         grad_weight = input_matrix.transpose(-1, -2) @ grad_output
-        # print((torch.abs(10000*grad_weight)>1).float().mean().item())
-        # if (torch.abs(10*grad_weight)>1).float().mean().item() != 0:
-            # print('Success!!')
-        return grad_input, lr_scale*grad_weight, None
+        grad_weight = torch.clamp(lr_scale*grad_weight, -1, 1)
+        # grad_weight = lr_scale*grad_weight
+        # print((torch.abs(lr_scale*grad_weight)>1).float().mean().item())
+        # mean = (torch.abs(lr_scale*grad_weight)>1).float().mean().item()
+        # if mean != 0:
+        #     print('Success!!', mean)
+
+        return grad_input, grad_weight, None
