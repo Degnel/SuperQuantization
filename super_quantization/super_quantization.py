@@ -10,7 +10,8 @@ class QuantizedLayer(nn.Module):
         self.weight = nn.Parameter(
             # (torch.randint(0, 4, (input_dim, output_dim)) - 1).float()
             # torch.zeros(input_dim, output_dim, dtype=torch.float32),
-            torch.randn(input_dim, output_dim, dtype=torch.float32) * std
+            torch.randn(input_dim, output_dim, dtype=torch.float32)
+            * std
         )
         if bias:
             self.bias = nn.Parameter(torch.randn(output_dim, dtype=torch.float32))
@@ -22,7 +23,9 @@ class QuantizedLayer(nn.Module):
         if self.bias is None:
             return DiscreteMatrixMultiply.apply(x, self.weight, self.lr_scale)
         else:
-            return DiscreteMatrixMultiply.apply(x, self.weight, self.lr_scale) + self.bias
+            return (
+                DiscreteMatrixMultiply.apply(x, self.weight, self.lr_scale) + self.bias
+            )
 
 
 class DiscreteMatrixMultiply(torch.autograd.Function):
@@ -45,7 +48,7 @@ class DiscreteMatrixMultiply(torch.autograd.Function):
         grad_input = grad_output @ quantized_weight.transpose(-1, -2)
         # grad_input = grad_output @ weight_matrix.transpose(-1, -2)
         grad_weight = input_matrix.transpose(-1, -2) @ grad_output
-        grad_weight = torch.clamp(lr_scale*grad_weight, -1, 1)
+        grad_weight = torch.clamp(lr_scale * grad_weight, -1, 1)
         # grad_weight = lr_scale*grad_weight
         # print((torch.abs(lr_scale*grad_weight)>1).float().mean().item())
         # mean = (torch.abs(lr_scale*grad_weight)>1).float().mean().item()

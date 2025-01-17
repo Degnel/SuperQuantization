@@ -28,19 +28,19 @@ class MultiHeadAttention(nn.Module):
             self.Q = QuantizedLayer(d_model, d_model * n_heads, False)
         else:
             self.Q = nn.Linear(d_model, d_model * n_heads, False)
-            self.custom_init(self.Q.weight)
+            # self.custom_init(self.Q.weight)
 
         if quantize_K:
             self.K = QuantizedLayer(d_model, d_model * n_heads, False)
         else:
             self.K = nn.Linear(d_model, d_model * n_heads, False)
-            self.custom_init(self.K.weight)
+            # self.custom_init(self.K.weight)
 
         if quantize_V:
             self.V = QuantizedLayer(d_model, d_model * n_heads, False)
         else:
             self.V = nn.Linear(d_model, d_model * n_heads, False)
-            self.custom_init(self.V.weight)
+            # self.custom_init(self.V.weight)
 
     def custom_init(self, tensor):
         with torch.no_grad():

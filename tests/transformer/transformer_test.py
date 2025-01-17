@@ -2,6 +2,9 @@ from transformer import Transformer
 from density.space import ArchitecturalSpace
 from density.probabilistic_density import ArchitectureComparator
 from torch import optim
+from torch import nn
+import torch
+import torch.nn.functional as F
 
 """
 In this exemple we are comparing 3 transformers with the same general architecture
@@ -16,10 +19,11 @@ n_heads = 1
 sq_n_heads = 16
 d_ff = 6
 sq_d_ff = 6
+vocab_size = 64
 max_depth = 1
 quantize_Q = True
 quantize_K = True
-quantize_V = True
+quantize_V = False
 quantize_fc_1 = False
 quantize_fc_2 = False
 
@@ -35,6 +39,8 @@ sq_transformer_params = [
         "quantize_V": quantize_V,
         "quantize_fc_1": quantize_fc_1,
         "quantize_fc_2": quantize_fc_2,
+        "embed": True,
+        "vocab_size": vocab_size,
     }
     for i in range(max_depth)
 ]
@@ -45,6 +51,8 @@ transformer_params = [
         "n_heads": n_heads,
         "d_ff": d_ff,
         "depth": i + 4,
+        "embed": True,
+        "vocab_size": vocab_size,
     }
     for i in range(max_depth)
 ]
@@ -55,6 +63,8 @@ full_transformer_params = [
         "n_heads": sq_n_heads,
         "d_ff": sq_d_ff,
         "depth": i + 4,
+        "embed": True,
+        "vocab_size": vocab_size,
     }
     for i in range(max_depth)
 ]
@@ -87,7 +97,7 @@ def bit_diff(boolean):
 
 
 # Create architectural spaces
-epoch = [i+70 for i in range(max_depth)]
+epoch = [i + 70 for i in range(max_depth)]
 
 sq_transformer_mesurement = [
     mesure_information(
@@ -105,15 +115,15 @@ sq_transformer_mesurement = [
 ]
 
 sq_transformer_space = ArchitecturalSpace(
-    (seq_length, d_model),
+    (seq_length,),
     "Super Quantized Transformer",
     Transformer,
     sq_transformer_params,
     lr=0.001,
-    mini_batch_size=16,   
+    mini_batch_size=16,
     epoch=epoch,
     mesurement=sq_transformer_mesurement,
-    optimizer=optim.AdamW
+    optimizer=optim.AdamW,
 )
 
 transformer_mesurement = [
@@ -121,7 +131,7 @@ transformer_mesurement = [
 ]
 
 transformer_space = ArchitecturalSpace(
-    (seq_length, d_model),
+    (seq_length,),
     "Transformer",
     Transformer,
     transformer_params,
@@ -134,7 +144,7 @@ full_transformer_mesurement = [
 ]
 
 full_transformer_space = ArchitecturalSpace(
-    (seq_length, d_model),
+    (seq_length,),
     "Full Transformer",
     Transformer,
     full_transformer_params,
@@ -151,7 +161,28 @@ full_transformer_space = ArchitecturalSpace(
 #     transformer_space, sq_transformer_space, full_transformer_space
 # )
 
-comparator = ArchitectureComparator(sq_transformer_space, transformer_space)
+
+class CustomCrossEntropyLoss(torch.nn.Module):
+    def __init__(self):
+        super(CustomCrossEntropyLoss, self).__init__()
+    
+    def forward(self, logits_pred, logits_target):
+        # Convert logits to probabilities using softmax
+        prob_pred = F.softmax(logits_pred, dim=-1)
+        prob_target = F.softmax(logits_target, dim=-1)
+        
+        # Calculate the cross-entropy
+        loss = -torch.sum(prob_target * torch.log(prob_pred + 1e-8), dim=-1)  # Add epsilon to avoid log(0)
+        
+        # Return the mean loss
+        return loss.mean()
+
+comparator = ArchitectureComparator(
+    transformer_space,
+    full_transformer_space,
+    criterion=CustomCrossEntropyLoss(),
+    law=torch.distributions.Categorical(probs=torch.ones(vocab_size)),
+)
 
 res = comparator.compare()
 print(res)

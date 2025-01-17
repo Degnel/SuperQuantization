@@ -9,6 +9,7 @@ from super_quantization.super_quantization import QuantizedLayer
 import torch
 import torch.nn.functional as F
 
+
 class Transformer(nn.Module):
     def __init__(
         self,
@@ -22,6 +23,8 @@ class Transformer(nn.Module):
         quantize_V=False,
         quantize_fc_1=False,
         quantize_fc_2=False,
+        embed=False,
+        vocab_size=100,
     ):
         super(Transformer, self).__init__()
         self.d_model = d_model
@@ -44,12 +47,25 @@ class Transformer(nn.Module):
             ]
         )
 
+        if embed:
+            self.embedding = nn.Embedding(vocab_size, d_model)
+            self.output_projection = nn.Linear(d_model, vocab_size, bias=False)
+            self.output_projection.weight = self.embedding.weight
+        else:
+            self.embedding = None
+            self.output_projection = None
+
     def forward(self, x):
         """
         x : Tensor de taille (batch_size, seq_len, d_model)
         """
+        if self.embedding is not None:
+            x = x.to(torch.int32)
+            x = self.embedding(x)
         for layer in self.encoder_layers:
             x = layer(x)
+        if self.output_projection is not None:
+            x = self.output_projection(x)
         return x
 
 
@@ -75,13 +91,13 @@ class TransformerEncoderLayer(nn.Module):
             self.fc_1 = QuantizedLayer(d_model, d_ff)
         else:
             self.fc_1 = nn.Linear(d_model, d_ff)
-            self.custom_init(self.fc_1.weight)
+            # self.custom_init(self.fc_1.weight)
 
         if quantize_fc_2:
             self.fc_2 = QuantizedLayer(d_ff, d_model)
         else:
             self.fc_2 = nn.Linear(d_ff, d_model)
-            self.custom_init(self.fc_2.weight)
+            # self.custom_init(self.fc_2.weight)
 
         self.activation = nn.ReLU()
         self.layer_norm1 = nn.LayerNorm(d_model)
@@ -115,12 +131,16 @@ class TransformerEncoderLayer(nn.Module):
         return x
 
     def check_weights(self):
-        current_weights = {name: param.clone() for name, param in self.named_parameters()}
+        current_weights = {
+            name: param.clone() for name, param in self.named_parameters()
+        }
 
         if self.previous_weights is not None:
             for name, param in current_weights.items():
                 param = torch.round(torch.clamp(param, -1, 2))
-                self.previous_weights[name] = torch.round(torch.clamp(self.previous_weights[name], -1, 2))
+                self.previous_weights[name] = torch.round(
+                    torch.clamp(self.previous_weights[name], -1, 2)
+                )
                 pass
                 # assert torch.equal(param, self.previous_weights[name]), f"Les poids pour {name} ont changé."
 
