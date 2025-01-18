@@ -23,8 +23,7 @@ class Transformer(nn.Module):
         quantize_V=False,
         quantize_fc_1=False,
         quantize_fc_2=False,
-        embed=False,
-        vocab_size=100,
+        vocab_size=None,
     ):
         super(Transformer, self).__init__()
         self.d_model = d_model
@@ -47,7 +46,7 @@ class Transformer(nn.Module):
             ]
         )
 
-        if embed:
+        if vocab_size:
             self.embedding = nn.Embedding(vocab_size, d_model)
             self.output_projection = nn.Linear(d_model, vocab_size, bias=False)
             self.output_projection.weight = self.embedding.weight
