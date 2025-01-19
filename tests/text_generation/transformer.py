@@ -13,20 +13,38 @@ from torch.utils.data import DataLoader
 from xy_dataset import XyDataset
 
 class Transformer(nn.Module):
+    """
+    Implements a Transformer model with configurable depth and optional quantization 
+    for various components.
+
+    Args:
+        d_model (int): The dimensionality of the input embeddings.
+        n_heads (int): The number of attention heads.
+        d_ff (int): The dimensionality of the feedforward network.
+        depth (int): The number of encoder layers in the Transformer.
+        dropout (float, optional): The dropout rate. Defaults to 0.1.
+        quantize_Q (bool, optional): If True, quantizes the query projection layers. Defaults to False.
+        quantize_K (bool, optional): If True, quantizes the key projection layers. Defaults to False.
+        quantize_V (bool, optional): If True, quantizes the value projection layers. Defaults to False.
+        quantize_fc_1 (bool, optional): If True, quantizes the first feedforward layers. Defaults to False.
+        quantize_fc_2 (bool, optional): If True, quantizes the second feedforward layers. Defaults to False.
+        vocab_size (int, optional): The size of the input vocabulary. If None, no embedding layer is added. Defaults to None.
+        max_context_size (int, optional): The maximum length of the input sequences. Defaults to 512.
+    """
     def __init__(
         self,
-        d_model,
-        n_heads,
-        d_ff,
-        depth,
-        dropout=0.1,
-        quantize_Q=False,
-        quantize_K=False,
-        quantize_V=False,
-        quantize_fc_1=False,
-        quantize_fc_2=False,
-        vocab_size=None,
-        max_context_size=512,  # Taille maximale du contexte
+        d_model: int,
+        n_heads: int,
+        d_ff: int,
+        depth: int,
+        dropout: float = 0.1,
+        quantize_Q: bool = False,
+        quantize_K: bool = False,
+        quantize_V: bool = False,
+        quantize_fc_1: bool = False,
+        quantize_fc_2: bool = False,
+        vocab_size: int | None = None,
+        max_context_size: int = 512,
     ):
         super(Transformer, self).__init__()
         self.d_model = d_model
@@ -53,30 +71,20 @@ class Transformer(nn.Module):
             self.embedding = nn.Embedding(vocab_size, d_model)
             self.output_projection = nn.Linear(d_model, vocab_size, bias=False)
             self.output_projection.weight = self.embedding.weight
+            self.position_embedding = nn.Embedding(max_context_size, d_model)
         else:
             self.embedding = None
             self.output_projection = None
+            self.position_embedding = None
 
-        # Embedding positionnel
-        self.position_embedding = nn.Embedding(max_context_size, d_model)
 
-    def forward(self, x):
+    def forward(self, x:torch.Tensor):
         """
-        x : Tensor de taille (batch_size, seq_len)
+        x : Tensor de taille (batch_size, seq_len) ou (batch_size, seq_len, d_model)
         """
         if self.embedding is not None:
             x = x.to(torch.int32)
-            token_embeds = self.embedding(x)  # [batch_size, seq_len, d_model]
-        else:
-            raise ValueError("L'embedding des tokens est requis.")
-
-        # Calcul des positions
-        batch_size, seq_len = x.shape
-        positions = torch.arange(seq_len, device=x.device).unsqueeze(0).expand(batch_size, seq_len)
-        position_embeds = self.position_embedding(positions)  # [batch_size, seq_len, d_model]
-
-        # Ajout des embeddings positionnels aux embeddings des tokens
-        x = token_embeds + position_embeds
+            x = self.embedding(x) + self.position_embedding.weight # [batch_size, seq_len, d_model]
 
         # Passage par les couches de l'encodeur
         for layer in self.encoder_layers:
@@ -84,6 +92,7 @@ class Transformer(nn.Module):
 
         # Projection finale si applicable
         if self.output_projection is not None:
+            x = x - self.position_embedding.weight
             x = self.output_projection(x)
 
         return x
@@ -155,18 +164,33 @@ class Transformer(nn.Module):
         return loss.item()
 
 class TransformerEncoderLayer(nn.Module):
+    """
+    Implements a single layer of a Transformer encoder with optional quantization 
+    for query (Q), key (K), value (V), and feedforward (fc_1, fc_2) layers.
+
+    Args:
+        d_model (int): The dimensionality of the input embeddings.
+        n_heads (int): The number of attention heads.
+        d_ff (int): The dimensionality of the feedforward network.
+        dropout (float, optional): The dropout rate. Defaults to 0.1.
+        quantize_Q (bool, optional): If True, quantizes the query projection layer. Defaults to False.
+        quantize_K (bool, optional): If True, quantizes the key projection layer. Defaults to False.
+        quantize_V (bool, optional): If True, quantizes the value projection layer. Defaults to False.
+        quantize_fc_1 (bool, optional): If True, quantizes the first feedforward layer. Defaults to False.
+        quantize_fc_2 (bool, optional): If True, quantizes the second feedforward layer. Defaults to False.
+    """
     def __init__(
         self,
-        d_model,
-        n_heads,
-        d_ff,
-        dropout=0.1,
-        quantize_Q=False,
-        quantize_K=False,
-        quantize_V=False,
-        quantize_fc_1=False,
-        quantize_fc_2=False,
-    ):
+        d_model: int,
+        n_heads: int,
+        d_ff: int,
+        dropout: float = 0.1,
+        quantize_Q: bool = False,
+        quantize_K: bool = False,
+        quantize_V: bool = False,
+        quantize_fc_1: bool = False,
+        quantize_fc_2: bool = False,
+    ) -> None:
         super(TransformerEncoderLayer, self).__init__()
         self.self_attention = MultiHeadAttention(
             d_model, n_heads, quantize_Q, quantize_K, quantize_V
@@ -197,7 +221,7 @@ class TransformerEncoderLayer(nn.Module):
             tensor.round_()
             tensor.clamp_(-1, 2)
 
-    def forward(self, x):
+    def forward(self, x:torch.Tensor):
         """
         x : Tensor de taille (batch_size, seq_len, d_model)
         """
@@ -226,7 +250,6 @@ class TransformerEncoderLayer(nn.Module):
                 self.previous_weights[name] = torch.round(
                     torch.clamp(self.previous_weights[name], -1, 2)
                 )
-                pass
                 # assert torch.equal(param, self.previous_weights[name]), f"Les poids pour {name} ont changé."
 
         self.previous_weights = current_weights

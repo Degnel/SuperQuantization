@@ -12,14 +12,25 @@ L'autre différence, est qu'il n'y a pas de couche linéaire tradictionnellement
 
 
 class MultiHeadAttention(nn.Module):
+    """
+    Implements a multi-head attention mechanism with optional quantization for 
+    query (Q), key (K), and value (V) projection layers.
+
+    Args:
+        d_model (int): The dimensionality of the input embeddings.
+        n_heads (int): The number of attention heads.
+        quantize_Q (bool, optional): If True, quantizes the query projection layer. Defaults to False.
+        quantize_K (bool, optional): If True, quantizes the key projection layer. Defaults to False.
+        quantize_V (bool, optional): If True, quantizes the value projection layer. Defaults to False.
+    """
     def __init__(
         self,
-        d_model,
-        n_heads,
-        quantize_Q=False,
-        quantize_K=False,
-        quantize_V=False,
-    ):
+        d_model: int,
+        n_heads: int,
+        quantize_Q: bool = False,
+        quantize_K: bool = False,
+        quantize_V: bool = False,
+    ) -> None:
         super(MultiHeadAttention, self).__init__()
         self.d_model = d_model
         self.n_heads = n_heads
