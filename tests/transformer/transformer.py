@@ -7,7 +7,6 @@ from tests.transformer.attention import MultiHeadAttention
 import torch.nn as nn
 from super_quantization.super_quantization import QuantizedLayer
 import torch
-import torch.nn.functional as F
 
 
 class Transformer(nn.Module):
@@ -66,7 +65,6 @@ class Transformer(nn.Module):
         if self.output_projection is not None:
             x = self.output_projection(x)
         return x
-
 
 class TransformerEncoderLayer(nn.Module):
     def __init__(

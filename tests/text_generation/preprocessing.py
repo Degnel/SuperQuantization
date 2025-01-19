@@ -43,7 +43,7 @@ def get_data(seq_length=5, vocab_size=10000, force_create=False):
         most_common_words = [word for word, _ in word_counter.most_common(vocab_size)]
 
         # Création d'un vocabulaire où chaque mot a un numéro de token
-        vocab = {word: idx for idx, word in enumerate(most_common_words)}
+        vocab = {word: idx for idx, word in enumerate(most_common_words, 1)}
 
         # Conversion des textes en séquences de tokens
         tokenized_train = [tokenize(tokens, vocab) for tokens in train_tokens]
@@ -73,7 +73,7 @@ def tokenize(tokens, vocab, unk_token=0):
 def create_sequences(tokenized_texts, sequence_length):
     X, y = [], []
     for tokens in tokenized_texts:
-        if len(tokens) > sequence_length:  # Ignore les textes trop courts
+        if len(tokens) > sequence_length:
             for i in range(len(tokens) - sequence_length):
                 X.append(tokens[i : i + sequence_length])
                 y.append(tokens[i + 1 : i + sequence_length + 1])

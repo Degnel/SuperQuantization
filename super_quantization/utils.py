@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 from super_quantization.super_quantization import QuantizedLayer
 
@@ -16,9 +15,10 @@ def mesure(model: nn.Module):
     for module in leaf_modules:
         for name, p in module.named_parameters():
             if p.requires_grad:
-                coef = 1
                 if module.__class__ is QuantizedLayer and name == "weight":
                     coef = QUANTIZE_COEFS[module.quantize_mode]
+                else:
+                    coef = 1
                 element_size_in_bits = p.element_size() * 8 // coef
                 total_bits += p.numel() * element_size_in_bits
 

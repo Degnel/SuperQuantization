@@ -11,9 +11,9 @@ X_train, y_train, X_test, y_test, _ = get_data()
 
 # On entraine le transformer classique
 transformer_model = Transformer(
-    d_model=14,
-    n_heads=3,
-    d_ff=56,
+    d_model=512,
+    n_heads=8,
+    d_ff=256,
     depth=12,
     quantize_Q=True,
     quantize_K=True,
@@ -49,5 +49,3 @@ sq_loss = sq_model.train_model(X_test, y_test)
 print(sq_loss)
 
 # Il faut rajouter un positionnal encoding dans la couche transformer
-# Implémenter la méthode train directement dans la classe transformer
-# Implémenter la méthode test directement dans la classe transformer

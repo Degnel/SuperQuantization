@@ -8,7 +8,9 @@ import torch.nn as nn
 from super_quantization.super_quantization import QuantizedLayer
 import torch
 import torch.nn.functional as F
-
+from torch import optim
+from torch.utils.data import DataLoader
+from xy_dataset import XyDataset
 
 class Transformer(nn.Module):
     def __init__(
@@ -67,6 +69,71 @@ class Transformer(nn.Module):
             x = self.output_projection(x)
         return x
 
+
+    def train_model(
+        self,
+        X: torch.Tensor,
+        y: torch.Tensor,
+        epochs: int = 20,
+        mini_batch_size: int = 16,
+        criterion: nn.Module = nn.CrossEntropyLoss(),
+        optimizer: optim.Optimizer = optim.AdamW(),
+        grad_clamp: float = 1,
+    ) -> None:
+        """
+        Train a model to minimize the loss between predicted and target outputs.
+        
+        Parameters:
+        - X (torch.Tensor): Input tensors.
+        - y (torch.Tensor): Target tensors.
+        - epochs (int): Number of training epochs.
+        - mini_batch_size (int): Batch size for mini-batches.
+        - criterion (nn.Module): Loss function.
+        - optimizer (optim.Optimizer): Optimizer for gradient updates.
+        - grad_clamp (float): Maximum gradient value for clipping.
+        """
+        self.train()
+        dataset = XyDataset(X, y)
+        dataloader = DataLoader(dataset, batch_size=mini_batch_size, shuffle=True)
+        
+        for epoch in range(epochs):
+            running_loss = 0.0
+            for mini_batch, target in dataloader:
+                optimizer.zero_grad()
+                output = self.apply(mini_batch)
+                loss = criterion(output, target)
+                loss.backward()
+                nn.utils.clip_grad_norm_(self.parameters(), grad_clamp)
+                optimizer.step()
+                running_loss += loss.item()
+
+            print(f"Epoch {epoch + 1}/{epochs}, Loss: {running_loss / len(dataloader)}")
+
+
+    def test_model(
+        self,
+        X: torch.Tensor,
+        y: torch.Tensor,
+        criterion: nn.Module = torch.nn.CrossEntropyLoss,
+    ) -> float:
+        """
+        Test a model on a given dataset.
+
+        Parameters:
+        - model (nn.Module): The model to train.
+        - criterion (nn.Module): Loss function.
+        - X (list[torch.Tensor]): Input tensors.
+        - y (list[torch.Tensor]): Target tensors.
+        """
+
+        self.eval()
+        loss = 0
+        for mini_batch, target in zip(X, y):
+            output = self.apply(mini_batch)
+            loss += criterion(output, target)
+        loss /= X.shape[0]
+        print(f"Score on the whole set, loss: {loss}")
+        return loss.item()
 
 class TransformerEncoderLayer(nn.Module):
     def __init__(
