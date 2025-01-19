@@ -7,7 +7,9 @@ from tests.text_generation.transformer import Transformer
 from super_quantization.utils import mesure
 from tests.text_generation.preprocessing import get_data
 
-X_train, y_train, X_test, y_test, _ = get_data()
+seq_length = 5
+vocab_size = 10000
+X_train, y_train, X_test, y_test, _ = get_data(seq_length, vocab_size)
 
 # On entraine le transformer classique
 transformer_model = Transformer(
@@ -20,6 +22,7 @@ transformer_model = Transformer(
     quantize_V=True,
     quantize_fc_1=True,
     quantize_fc_2=True,
+    max_context_size=seq_length
 )
 
 print("Total bits of information in model: ", mesure(transformer_model))
@@ -40,6 +43,7 @@ sq_model = Transformer(
     quantize_V=True,
     quantize_fc_1=False,
     quantize_fc_2=False,
+    max_context_size=seq_length
 )
 
 print("Total bits of information in super quantized model: ", mesure(sq_model))
@@ -47,5 +51,3 @@ sq_model.train_model(X_train, y_train)
 sq_loss = sq_model.train_model(X_test, y_test)
 
 print(sq_loss)
-
-# Il faut rajouter un positionnal encoding dans la couche transformer

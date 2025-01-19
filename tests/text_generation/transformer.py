@@ -26,6 +26,7 @@ class Transformer(nn.Module):
         quantize_fc_1=False,
         quantize_fc_2=False,
         vocab_size=None,
+        max_context_size=512,  # Taille maximale du contexte
     ):
         super(Transformer, self).__init__()
         self.d_model = d_model
@@ -56,17 +57,35 @@ class Transformer(nn.Module):
             self.embedding = None
             self.output_projection = None
 
+        # Embedding positionnel
+        self.position_embedding = nn.Embedding(max_context_size, d_model)
+
     def forward(self, x):
         """
-        x : Tensor de taille (batch_size, seq_len, d_model)
+        x : Tensor de taille (batch_size, seq_len)
         """
         if self.embedding is not None:
             x = x.to(torch.int32)
-            x = self.embedding(x)
+            token_embeds = self.embedding(x)  # [batch_size, seq_len, d_model]
+        else:
+            raise ValueError("L'embedding des tokens est requis.")
+
+        # Calcul des positions
+        batch_size, seq_len = x.shape
+        positions = torch.arange(seq_len, device=x.device).unsqueeze(0).expand(batch_size, seq_len)
+        position_embeds = self.position_embedding(positions)  # [batch_size, seq_len, d_model]
+
+        # Ajout des embeddings positionnels aux embeddings des tokens
+        x = token_embeds + position_embeds
+
+        # Passage par les couches de l'encodeur
         for layer in self.encoder_layers:
             x = layer(x)
+
+        # Projection finale si applicable
         if self.output_projection is not None:
             x = self.output_projection(x)
+
         return x
 
 
