@@ -12,7 +12,7 @@ def get_data(seq_length=5, vocab_size=10000, force_create=False):
         "y_train": os.path.join(data_dir, "y_train.pt"),
         "X_test": os.path.join(data_dir, "X_test.pt"),
         "y_test": os.path.join(data_dir, "y_test.pt"),
-        "vocab": os.path.join(data_dir, "vocab.pkl")
+        "vocab": os.path.join(data_dir, "vocab.pkl"),
     }
 
     # Vérifier si les fichiers existent
@@ -29,8 +29,8 @@ def get_data(seq_length=5, vocab_size=10000, force_create=False):
         ds = load_dataset("roneneldan/TinyStories")
 
         # Extraction des textes d'entraînement et de validation
-        train_texts = ds['train']['text']
-        validation_texts = ds['validation']['text']
+        train_texts = ds["train"]["text"]
+        validation_texts = ds["validation"]["text"]
 
         # Prétraitement des données
         # Étape 1 : Découpage en mots
@@ -63,9 +63,11 @@ def get_data(seq_length=5, vocab_size=10000, force_create=False):
 
     return X_train, y_train, X_test, y_test, vocab
 
+
 # Fonction pour convertir les mots en tokens
 def tokenize(tokens, vocab, unk_token=0):
     return [vocab.get(word, unk_token) for word in tokens]
+
 
 # Création des séquences X (entrée) et y (cible)
 def create_sequences(tokenized_texts, sequence_length):
@@ -73,6 +75,6 @@ def create_sequences(tokenized_texts, sequence_length):
     for tokens in tokenized_texts:
         if len(tokens) > sequence_length:  # Ignore les textes trop courts
             for i in range(len(tokens) - sequence_length):
-                X.append(tokens[i:i + sequence_length])
-                y.append(tokens[i + 1:i + sequence_length + 1])
+                X.append(tokens[i : i + sequence_length])
+                y.append(tokens[i + 1 : i + sequence_length + 1])
     return torch.tensor(X, dtype=torch.long), torch.tensor(y, dtype=torch.long)

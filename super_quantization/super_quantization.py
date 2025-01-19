@@ -29,7 +29,7 @@ CLAMPING_FUNCTIONS = {
 }
 
 class QuantizedLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, bias=True, lr_scale=1, quantize_mode="01") -> None:
+    def __init__(self, input_dim, output_dim, bias=True, lr_scale=1, quantize_mode="_1012") -> None:
         super().__init__()
         std = sqrt(2 / input_dim)
         self.weight = nn.Parameter(

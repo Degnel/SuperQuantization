@@ -162,14 +162,15 @@ full_transformer_space = ArchitecturalSpace(
 class CustomCrossEntropyLoss(torch.nn.Module):
     def __init__(self):
         super(CustomCrossEntropyLoss, self).__init__()
-    
+
     def forward(self, logits_pred, logits_target):
         prob_pred = F.softmax(logits_pred, dim=-1)
         prob_target = F.softmax(logits_target, dim=-1)
-        
+
         loss = -torch.sum(prob_target * torch.log(prob_pred + 1e-8), dim=-1)
 
         return loss.mean()
+
 
 comparator = ArchitectureComparator(
     sq_transformer_space,
