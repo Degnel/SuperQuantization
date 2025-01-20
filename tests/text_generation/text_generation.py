@@ -6,10 +6,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 from tests.text_generation.transformer import Transformer
 from super_quantization.utils import mesure
 from tests.text_generation.preprocessing import get_data
+from torch.utils.data import DataLoader
 
 seq_length = 5
 vocab_size = 10000
-X_train, y_train, X_test, y_test, _ = get_data(seq_length, vocab_size)
+train_dataset, validation_dataset, _ = get_data(seq_length, vocab_size)
+train_dataloader = DataLoader(train_dataset, batch_size=16)
+validation_dataloader = DataLoader(validation_dataset, batch_size=None)
 
 # On entraine le transformer classique
 transformer_model = Transformer(
@@ -27,8 +30,8 @@ transformer_model = Transformer(
 
 print("Total bits of information in model: ", mesure(transformer_model))
 
-transformer_model.train_model(X_train, y_train)
-transformer_loss = transformer_model.train_model(X_test, y_test)
+transformer_model.train_model(train_dataloader)
+transformer_loss = transformer_model.test_model(validation_dataloader)
 
 print(transformer_loss)
 
@@ -47,7 +50,7 @@ sq_model = Transformer(
 )
 
 print("Total bits of information in super quantized model: ", mesure(sq_model))
-sq_model.train_model(X_train, y_train)
-sq_loss = sq_model.train_model(X_test, y_test)
+sq_model.train_model(train_dataloader)
+sq_loss = sq_model.test_model(validation_dataloader)
 
 print(sq_loss)

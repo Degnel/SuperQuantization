@@ -7,10 +7,7 @@ from tests.transformer.attention import MultiHeadAttention
 import torch.nn as nn
 from super_quantization.super_quantization import QuantizedLayer
 import torch
-import torch.nn.functional as F
 from torch import optim
-from torch.utils.data import DataLoader
-from xy_dataset import XyDataset
 
 class Transformer(nn.Module):
     """
@@ -100,30 +97,24 @@ class Transformer(nn.Module):
 
     def train_model(
         self,
-        X: torch.Tensor,
-        y: torch.Tensor,
+        dataloader: torch.utils.data.DataLoader,
         epochs: int = 20,
-        mini_batch_size: int = 16,
-        criterion: nn.Module = nn.CrossEntropyLoss(),
-        optimizer: optim.Optimizer = optim.AdamW(),
+        criterion: nn.Module = nn.CrossEntropyLoss,
+        optimizer: optim.Optimizer = optim.AdamW,
         grad_clamp: float = 1,
     ) -> None:
         """
         Train a model to minimize the loss between predicted and target outputs.
         
         Parameters:
-        - X (torch.Tensor): Input tensors.
-        - y (torch.Tensor): Target tensors.
+        - dataloader (torch.utils.data.DataLoader): Target tensors.
         - epochs (int): Number of training epochs.
-        - mini_batch_size (int): Batch size for mini-batches.
         - criterion (nn.Module): Loss function.
         - optimizer (optim.Optimizer): Optimizer for gradient updates.
         - grad_clamp (float): Maximum gradient value for clipping.
         """
         self.train()
-        dataset = XyDataset(X, y)
-        dataloader = DataLoader(dataset, batch_size=mini_batch_size, shuffle=True)
-        
+
         for epoch in range(epochs):
             running_loss = 0.0
             for mini_batch, target in dataloader:
@@ -140,8 +131,7 @@ class Transformer(nn.Module):
 
     def test_model(
         self,
-        X: torch.Tensor,
-        y: torch.Tensor,
+        dataloader: torch.utils.data.DataLoader,
         criterion: nn.Module = torch.nn.CrossEntropyLoss,
     ) -> float:
         """
@@ -150,16 +140,15 @@ class Transformer(nn.Module):
         Parameters:
         - model (nn.Module): The model to train.
         - criterion (nn.Module): Loss function.
-        - X (list[torch.Tensor]): Input tensors.
-        - y (list[torch.Tensor]): Target tensors.
+        - dataloader (torch.utils.data.Dataloader): Input tensors.
         """
 
         self.eval()
         loss = 0
-        for mini_batch, target in zip(X, y):
+        for mini_batch, target in dataloader:
             output = self.apply(mini_batch)
             loss += criterion(output, target)
-        loss /= X.shape[0]
+        loss /= len(dataloader)
         print(f"Score on the whole set, loss: {loss}")
         return loss.item()
 
