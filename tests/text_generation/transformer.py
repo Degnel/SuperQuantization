@@ -27,6 +27,7 @@ class Transformer(nn.Module):
         quantize_fc_2 (bool, optional): If True, quantizes the second feedforward layers. Defaults to False.
         vocab_size (int, optional): The size of the input vocabulary. If None, no embedding layer is added. Defaults to None.
         max_context_size (int, optional): The maximum length of the input sequences. Defaults to 512.
+        mask (bool, optional): If True, adds a mask to the attention scores. Defaults to True.
     """
     def __init__(
         self,
@@ -42,9 +43,11 @@ class Transformer(nn.Module):
         quantize_fc_2: bool = False,
         vocab_size: int | None = None,
         max_context_size: int = 512,
+        mask: bool = True,
     ):
         super(Transformer, self).__init__()
         self.d_model = d_model
+        self.mask = mask
 
         # Liste des couches de l'encodeur
         self.encoder_layers = nn.ModuleList(
@@ -59,6 +62,7 @@ class Transformer(nn.Module):
                     quantize_V,
                     quantize_fc_1,
                     quantize_fc_2,
+                    mask=mask
                 )
                 for _ in range(depth)
             ]
@@ -92,14 +96,16 @@ class Transformer(nn.Module):
             x = x - self.position_embedding.weight
             x = self.output_projection(x)
 
-        return x
+        return x.transpose(1, 2)
 
 
     def train_model(
         self,
         dataloader: torch.utils.data.DataLoader,
         epochs: int = 20,
-        criterion: nn.Module = nn.CrossEntropyLoss,
+        mini_batch_count: int = 1000,
+        lr: float = 0.001,
+        criterion: nn.Module = nn.CrossEntropyLoss(),
         optimizer: optim.Optimizer = optim.AdamW,
         grad_clamp: float = 1,
     ) -> None:
@@ -109,22 +115,28 @@ class Transformer(nn.Module):
         Parameters:
         - dataloader (torch.utils.data.DataLoader): Target tensors.
         - epochs (int): Number of training epochs.
+        - mini_batch_count (int): Number of training mini_batch
+        - lr (float): Learning rate for gradient updates. Defaults to 0.001.
         - criterion (nn.Module): Loss function.
         - optimizer (optim.Optimizer): Optimizer for gradient updates.
         - grad_clamp (float): Maximum gradient value for clipping.
         """
         self.train()
 
+        optimizer = optimizer(self.parameters(), lr=lr)
+
         for epoch in range(epochs):
             running_loss = 0.0
-            for mini_batch, target in dataloader:
+            for i, (mini_batch, target) in enumerate(dataloader):
                 optimizer.zero_grad()
-                output = self.apply(mini_batch)
+                output = self(mini_batch)
                 loss = criterion(output, target)
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.parameters(), grad_clamp)
                 optimizer.step()
                 running_loss += loss.item()
+                if i == mini_batch_count:
+                    break
 
             print(f"Epoch {epoch + 1}/{epochs}, Loss: {running_loss / len(dataloader)}")
 
@@ -132,7 +144,7 @@ class Transformer(nn.Module):
     def test_model(
         self,
         dataloader: torch.utils.data.DataLoader,
-        criterion: nn.Module = torch.nn.CrossEntropyLoss,
+        criterion: nn.Module = nn.CrossEntropyLoss(),
     ) -> float:
         """
         Test a model on a given dataset.
@@ -146,7 +158,7 @@ class Transformer(nn.Module):
         self.eval()
         loss = 0
         for mini_batch, target in dataloader:
-            output = self.apply(mini_batch)
+            output = self(mini_batch)
             loss += criterion(output, target)
         loss /= len(dataloader)
         print(f"Score on the whole set, loss: {loss}")
@@ -167,6 +179,7 @@ class TransformerEncoderLayer(nn.Module):
         quantize_V (bool, optional): If True, quantizes the value projection layer. Defaults to False.
         quantize_fc_1 (bool, optional): If True, quantizes the first feedforward layer. Defaults to False.
         quantize_fc_2 (bool, optional): If True, quantizes the second feedforward layer. Defaults to False.
+        mask (bool, optional): If True, applies masking during the self-attention. Defaults to True.
     """
     def __init__(
         self,
@@ -179,11 +192,14 @@ class TransformerEncoderLayer(nn.Module):
         quantize_V: bool = False,
         quantize_fc_1: bool = False,
         quantize_fc_2: bool = False,
+        mask: bool = True,
     ) -> None:
         super(TransformerEncoderLayer, self).__init__()
         self.self_attention = MultiHeadAttention(
             d_model, n_heads, quantize_Q, quantize_K, quantize_V
         )
+
+        self.mask = mask
 
         if quantize_fc_1:
             self.fc_1 = QuantizedLayer(d_model, d_ff)
@@ -214,8 +230,16 @@ class TransformerEncoderLayer(nn.Module):
         """
         x : Tensor de taille (batch_size, seq_len, d_model)
         """
+        seq_len = x.size(1)
+
+        # Génère un masque causal si nécessaire
+        if self.mask:
+            mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool().to(x.device)
+        else:
+            mask = None
+
         # Attention multi-têtes
-        attn_output = self.self_attention(x)
+        attn_output = self.self_attention(x, mask)
         x = self.layer_norm1(x + self.dropout(attn_output))
         # x = F.normalize(x + self.dropout(attn_output), p=2, dim=-1)
         # x = F.normalize(x + attn_output, p=2, dim=-1)

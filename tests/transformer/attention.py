@@ -51,9 +51,12 @@ class MultiHeadAttention(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
+        mask: torch.Tensor = None,
     ):
         """
         x : Tensor de taille (batch_size, seq_len, d_model)
+        mask : Tensor de taille (batch_size, 1, seq_len, seq_len) ou (batch_size*n_heads, seq_len, seq_len)
+                Le masque peut contenir des -inf pour les positions à masquer ou 0 pour les positions autorisées.
         """
         batch_size, seq_len, _ = x.size()
 
@@ -66,9 +69,12 @@ class MultiHeadAttention(nn.Module):
 
         dk = query.size()[-1]
         scores = query.matmul(key.transpose(-2, -1)) / math.sqrt(dk)
+
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, float('-inf'))
+
         attention = F.softmax(scores, dim=-1)
         y = attention.matmul(value)
-
         y = y.reshape(batch_size, self.n_heads, seq_len, self.d_model)
         y = y.sum(dim=1)
 

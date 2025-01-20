@@ -25,6 +25,7 @@ transformer_model = Transformer(
     quantize_V=True,
     quantize_fc_1=True,
     quantize_fc_2=True,
+    vocab_size=vocab_size,
     max_context_size=seq_length
 )
 
@@ -46,6 +47,7 @@ sq_model = Transformer(
     quantize_V=True,
     quantize_fc_1=False,
     quantize_fc_2=False,
+    vocab_size=vocab_size,
     max_context_size=seq_length
 )
 
