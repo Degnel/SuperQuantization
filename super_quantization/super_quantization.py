@@ -6,19 +6,24 @@ from math import sqrt
 def clamp01(tensor):
     return torch.where(tensor < 0.5, 0.0, 1.0)
 
+
 def clamp_11(tensor):
     return torch.sign(tensor)
+
 
 def clamp_2_112(tensor):
     abs = torch.abs(tensor)
     sign = torch.sign(tensor)
     return sign * torch.where(abs < 1.5, 1, 2)
 
+
 def clamp_2_101(tensor):
     return torch.clamp(torch.round(tensor), -2, 1)
 
+
 def clamp_1012(tensor):
     return torch.clamp(torch.round(tensor), -1, 2)
+
 
 CLAMPING_FUNCTIONS = {
     "01": clamp01,
@@ -28,13 +33,16 @@ CLAMPING_FUNCTIONS = {
     "_1012": clamp_1012,
 }
 
+
 class QuantizedLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, bias=True, lr_scale=1, quantize_mode="_1012") -> None:
+    def __init__(
+        self, input_dim, output_dim, bias=True, lr_scale=1, quantize_mode="_11"
+    ) -> None:
         super().__init__()
         std = sqrt(2 / input_dim)
         self.weight = nn.Parameter(
             # (torch.randint(0, 4, (input_dim, output_dim)) - 1).float()
-            # torch.zeros(input_dim, output_dim, dtype=torch.float32),
+            # torch.zeros(input_dim, output_dim, d(type=torch.float32),
             torch.randn(input_dim, output_dim, dtype=torch.float32)
             * std
         )
@@ -48,16 +56,21 @@ class QuantizedLayer(nn.Module):
     def forward(self, x) -> torch.Tensor:
         clamping_fn = CLAMPING_FUNCTIONS.get(self.quantize_mode, clamp01)
         if self.bias is None:
-            return DiscreteMatrixMultiply.apply(x, self.weight, self.lr_scale, clamping_fn)
+            return DiscreteMatrixMultiply.apply(
+                x, self.weight, self.lr_scale, clamping_fn
+            )
         else:
             return (
-                DiscreteMatrixMultiply.apply(x, self.weight, self.lr_scale, clamping_fn) + self.bias
+                DiscreteMatrixMultiply.apply(x, self.weight, self.lr_scale, clamping_fn)
+                + self.bias
             )
 
 
 class DiscreteMatrixMultiply(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, input_matrix, weight_matrix, lr_scale=1, clamping_fn=clamp_1012) -> torch.Tensor:
+    def forward(
+        ctx, input_matrix, weight_matrix, lr_scale=1, clamping_fn=clamp_1012
+    ) -> torch.Tensor:
         ctx.save_for_backward(input_matrix, weight_matrix)
         ctx.lr_scale = lr_scale
         ctx.clamping_fn = clamping_fn

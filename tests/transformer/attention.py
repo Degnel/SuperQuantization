@@ -71,7 +71,7 @@ class MultiHeadAttention(nn.Module):
         scores = query.matmul(key.transpose(-2, -1)) / math.sqrt(dk)
 
         if mask is not None:
-            scores = scores.masked_fill(mask == 0, float('-inf'))
+            scores = scores.masked_fill(mask == 0, float("-inf"))
 
         attention = F.softmax(scores, dim=-1)
         y = attention.matmul(value)

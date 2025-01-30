@@ -1,0 +1,10 @@
+resources:
+  instance_type: A4000
+  use_spot: true
+
+setup: |
+  pip install uv
+  uv pip install -e .
+
+run: |
+  python tests/text_generation/text_generation.py

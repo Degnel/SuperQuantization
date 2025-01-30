@@ -7,6 +7,7 @@ from tests.text_generation.tiny_stories_dataset import TinyStoriesDataset
 
 def get_data(seq_length=5, vocab_size=10000, force_create=False):
     data_dir = "./data/tiny_stories"
+    # data_dir = "./drive/MyDrive/SuperQuantization/data/tiny_stories"
     data_files = {
         "tokenized_train": os.path.join(data_dir, "tokenized_train.pkl"),
         "tokenized_validation": os.path.join(data_dir, "tokenized_validation.pkl"),
@@ -15,6 +16,7 @@ def get_data(seq_length=5, vocab_size=10000, force_create=False):
 
     # Vérifier si les fichiers existent
     if all(os.path.exists(file) for file in data_files.values()) and not force_create:
+        print("Fetching data...")
         # Charger les données depuis les fichiers
         with open(data_files["tokenized_train"], "rb") as f:
             tokenized_train = pkl.load(f)
@@ -47,9 +49,6 @@ def get_data(seq_length=5, vocab_size=10000, force_create=False):
         tokenized_train = [tokenize(tokens, vocab) for tokens in train_tokens]
         tokenized_validation = [tokenize(tokens, vocab) for tokens in validation_tokens]
 
-        # X_train, y_train = create_sequences(tokenized_train, seq_length)
-        # X_test, y_test = create_sequences(tokenized_validation, seq_length)
-
         # Enregistrer les données dans des fichiers
         os.makedirs(data_dir, exist_ok=True)
         with open(data_files["tokenized_train"], "wb") as f:
@@ -61,7 +60,7 @@ def get_data(seq_length=5, vocab_size=10000, force_create=False):
 
     train_dataset = TinyStoriesDataset(tokenized_train, seq_length)
     validation_dataset = TinyStoriesDataset(tokenized_train, seq_length)
-        
+
     return train_dataset, validation_dataset, vocab
 
 

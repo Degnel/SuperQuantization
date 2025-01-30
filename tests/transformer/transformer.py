@@ -66,6 +66,7 @@ class Transformer(nn.Module):
             x = self.output_projection(x)
         return x
 
+
 class TransformerEncoderLayer(nn.Module):
     def __init__(
         self,

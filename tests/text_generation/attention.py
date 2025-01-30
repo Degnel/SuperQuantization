@@ -13,7 +13,7 @@ L'autre différence, est qu'il n'y a pas de couche linéaire tradictionnellement
 
 class MultiHeadAttention(nn.Module):
     """
-    Implements a multi-head attention mechanism with optional quantization for 
+    Implements a multi-head attention mechanism with optional quantization for
     query (Q), key (K), and value (V) projection layers.
 
     Args:
@@ -23,6 +23,7 @@ class MultiHeadAttention(nn.Module):
         quantize_K (bool, optional): If True, quantizes the key projection layer. Defaults to False.
         quantize_V (bool, optional): If True, quantizes the value projection layer. Defaults to False.
     """
+
     def __init__(
         self,
         d_model: int,
