@@ -36,22 +36,27 @@ CLAMPING_FUNCTIONS = {
 
 class QuantizedLayer(nn.Module):
     def __init__(
-        self, input_dim, output_dim, bias=True, lr_scale=1, quantize_mode="_11"
+        self, in_features, out_features, bias=True, lr_scale=1, quantize_mode="_11"
     ) -> None:
         super().__init__()
-        std = sqrt(2 / input_dim)
+        std = sqrt(2 / in_features)
         self.weight = nn.Parameter(
-            # (torch.randint(0, 4, (input_dim, output_dim)) - 1).float()
-            # torch.zeros(input_dim, output_dim, d(type=torch.float32),
-            torch.randn(input_dim, output_dim, dtype=torch.float32)
+            # (torch.randint(0, 4, (in_features, out_features)) - 1).float()
+            # torch.zeros(in_features, out_features, d(type=torch.float32),
+            torch.randn(in_features, out_features, dtype=torch.float32)
             * std
         )
         if bias:
-            self.bias = nn.Parameter(torch.randn(output_dim, dtype=torch.float32))
+            self.bias = nn.Parameter(torch.randn(out_features, dtype=torch.float32))
         else:
             self.bias = None
+        self.in_features = in_features
+        self.out_features = out_features
         self.lr_scale = lr_scale
         self.quantize_mode = quantize_mode
+
+    def __repr__(self):
+        return f"QuantizedLayer(in_features={self.in_features}, out_features={self.out_features}, bias={self.bias is not None}, lr_scale={self.lr_scale}, quantize_mode='{self.quantize_mode}')"
 
     def forward(self, x) -> torch.Tensor:
         clamping_fn = CLAMPING_FUNCTIONS.get(self.quantize_mode, clamp01)
