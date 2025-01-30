@@ -37,9 +37,6 @@ class SuperQuantizer(nn.Module):
                 )
 
                 with torch.no_grad():
-                    # quantized_layer.weight = nn.Parameter(
-                    #     torch.zeros_like(quantized_layer.weight)
-                    # )
                     quantized_layer.weight.copy_(module.weight.T)
                     if module.bias is not None:
                         quantized_layer.bias.copy_(module.bias)

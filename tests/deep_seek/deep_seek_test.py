@@ -29,8 +29,7 @@ except Exception as e:
 
 print("Quantizing model...")
 sq = SuperQuantizer()
-sq.quantize(model, {"self_attn.o_proj": "01", "layers.20.self_attn.v_proj": "01", "self_attn.k_proj": "01", "self_attn.q_proj": "01"})
-# sq.quantize(model)
+sq.quantize(model, {"self_attn.q_proj": "_11"})
 
 print("Generating answer...")
 input_text = "#write a quick sort algorithm"
