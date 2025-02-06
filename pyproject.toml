@@ -9,6 +9,7 @@ dependencies = [
     "black>=24.10.0",
     "datasets>=3.2.0",
     "density",
+    "frease",
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.0",
     "ruff>=0.8.3",
@@ -20,3 +21,4 @@ dependencies = [
 
 [tool.uv.sources]
 density = { path = "../Density/dist/density-0.1.0.tar.gz" }
+frease = { path = "../FrEase/dist/frease-0.1.0-py3-none-any.whl" }

@@ -44,14 +44,14 @@ sq = SuperQuantizer()
 # On entraine notre transformer
 sq_model = Transformer(
     d_model=32,
-    n_heads=8,
+    n_heads=2,
     d_ff=32,
-    depth=10,
+    depth=2,
     quantize_Q=True,
     quantize_K=True,
-    quantize_V=False,
-    quantize_fc_1=False,
-    quantize_fc_2=False,
+    quantize_V=True,
+    quantize_fc_1=True,
+    quantize_fc_2=True,
     vocab_size=vocab_size,
     max_context_size=seq_length,
 ).to(device)

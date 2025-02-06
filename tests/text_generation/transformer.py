@@ -46,6 +46,7 @@ class Transformer(nn.Module):
         vocab_size: int | None = None,
         max_context_size: int = 512,
         mask: bool = True,
+        lora_ratio: float = 4
     ):
         super(Transformer, self).__init__()
         self.d_model = d_model
@@ -64,13 +65,16 @@ class Transformer(nn.Module):
                     quantize_V,
                     quantize_fc_1,
                     quantize_fc_2,
+                    lora_ratio,
                 )
                 for _ in range(depth)
             ]
         )
 
         if vocab_size:
-            self.embedding = nn.Embedding(vocab_size, d_model)
+            self.embedding = nn.Embedding(
+                vocab_size + 1, d_model
+            )  # add one for the special token if a word is not in the dictionnary
             self.output_projection = nn.Linear(d_model, vocab_size, bias=False)
             self.output_projection.weight = self.embedding.weight
             self.position_embedding = nn.Embedding(max_context_size, d_model)
@@ -146,7 +150,7 @@ class Transformer(nn.Module):
                 running_loss += loss.item()
                 if i + 1 == mini_batch_count:
                     break
-
+                # print(f"Batch: {i+1} - Loss: {loss.item()}")
             print(f"Epoch {epoch + 1}/{epochs}, Loss: {running_loss / (i + 1)}")
 
     def test_model(
@@ -208,10 +212,11 @@ class TransformerEncoderLayer(nn.Module):
         quantize_V: bool = False,
         quantize_fc_1: bool = False,
         quantize_fc_2: bool = False,
+        lora_ratio: float = 4,
     ) -> None:
         super(TransformerEncoderLayer, self).__init__()
         self.self_attention = MultiHeadAttention(
-            d_model, n_heads, quantize_Q, quantize_K, quantize_V
+            d_model, n_heads, quantize_Q, quantize_K, quantize_V, lora_ratio
         )
 
         if quantize_fc_1:

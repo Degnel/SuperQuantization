@@ -43,17 +43,17 @@ class SuperQuantizer(nn.Module):
                 setattr(model, module_name, quantized_layer)
             elif isinstance(module, nn.Module):
                 self.quantize(module, layers_quant_type, full_name, inplace=True)
-        
+
         if not inplace:
             return model
-    
+
     def _quantize_type(self, name, layers_quant_type):
         if isinstance(layers_quant_type, str):
             return layers_quant_type
         for layer, quantize_mode in layers_quant_type.items():
             if name.endswith(layer):
                 return quantize_mode
-        
+
         # leaf_modules = self._iterate_mod_tree(model)
         # for name, module in leaf_modules:
         #     if module.__class__ is nn.Linear:

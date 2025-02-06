@@ -28,11 +28,11 @@ except Exception as e:
     print("Model loaded successfully from Hugging Face Hub.")
 
 print("Quantizing model...")
-sq = SuperQuantizer()
-sq.quantize(model, {"self_attn.q_proj": "_11"})
+# sq = SuperQuantizer()
+# sq.quantize(model, {"self_attn.q_proj": "_11"})
 
 print("Generating answer...")
-input_text = "#write a quick sort algorithm"
+input_text = "#write a short code"
 inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
 outputs = model.generate(**inputs, max_length=128)
 print(tokenizer.decode(outputs[0], skip_special_tokens=True))

@@ -19,21 +19,23 @@ class MultiHeadAttention(nn.Module):
         quantize_Q=False,
         quantize_K=False,
         quantize_V=False,
+        lora_ratio=4,
     ):
         super(MultiHeadAttention, self).__init__()
         self.d_model = d_model
         self.n_heads = n_heads
+        self.lora_dim = int(d_model / lora_ratio)
 
         if quantize_Q:
-            self.Q = QuantizedLayer(d_model, d_model * n_heads, False)
+            self.Q = QuantizedLayer(d_model, self.lora_dim * n_heads, False)
         else:
-            self.Q = nn.Linear(d_model, d_model * n_heads, False)
+            self.Q = nn.Linear(d_model, self.lora_dim * n_heads, False)
             # self.custom_init(self.Q.weight)
 
         if quantize_K:
-            self.K = QuantizedLayer(d_model, d_model * n_heads, False)
+            self.K = QuantizedLayer(d_model, self.lora_dim * n_heads, False)
         else:
-            self.K = nn.Linear(d_model, d_model * n_heads, False)
+            self.K = nn.Linear(d_model, self.lora_dim * n_heads, False)
             # self.custom_init(self.K.weight)
 
         if quantize_V:
@@ -63,9 +65,9 @@ class MultiHeadAttention(nn.Module):
         # Calculer Q, K, V et les diviser en têtes
         q, k, v = self.Q(x), self.K(x), self.V(x)
 
-        query = self._reshape_to_batches(q)
-        key = self._reshape_to_batches(k)
-        value = self._reshape_to_batches(v)
+        query = self._reshape_to_batches(q, self.lora_dim)
+        key = self._reshape_to_batches(k, self.lora_dim)
+        value = self._reshape_to_batches(v, self.d_model)
 
         dk = query.size()[-1]
         scores = query.matmul(key.transpose(-2, -1)) / math.sqrt(dk)
@@ -83,16 +85,19 @@ class MultiHeadAttention(nn.Module):
     def _reshape_to_batches(
         self,
         x: torch.Tensor,
+        last_dim: int,
     ) -> torch.Tensor:
         """
         x: input tensor with shape (batch_size, seq_len, d_model*n_heads)
+        or (batch_size, seq_len, lora_dim*n_heads)
 
         Returns:
         Reshaped tensor with shape (batch_size*n_heads, seq_len, d_model)
+        or (batch_size*n_heads, seq_len, lora_dim)
         """
         batch_size, seq_len, _ = x.size()
         return (
-            x.reshape(batch_size, seq_len, self.n_heads, self.d_model)
+            x.reshape(batch_size, seq_len, self.n_heads, last_dim)
             .permute(0, 2, 1, 3)
-            .reshape(batch_size * self.n_heads, seq_len, self.d_model)
+            .reshape(batch_size * self.n_heads, seq_len, last_dim)
         )

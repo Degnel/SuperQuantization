@@ -7,7 +7,9 @@
 
 from datasets import load_dataset
 
-educational_instruct = load_dataset("OpenCoder-LLM/opc-sft-stage2", "educational_instruct")
+educational_instruct = load_dataset(
+    "OpenCoder-LLM/opc-sft-stage2", "educational_instruct"
+)
 evol_instruct = load_dataset("OpenCoder-LLM/opc-sft-stage2", "evol_instruct")
 mceval_instruct = load_dataset("OpenCoder-LLM/opc-sft-stage2", "mceval_instruct")
 package_instruct = load_dataset("OpenCoder-LLM/opc-sft-stage2", "package_instruct")

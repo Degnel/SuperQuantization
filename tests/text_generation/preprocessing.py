@@ -5,7 +5,13 @@ import pickle as pkl
 from tests.text_generation.tiny_stories_dataset import TinyStoriesDataset
 
 
-def get_data(seq_length=5, vocab_size=10000, force_create=False):
+def get_data(
+    seq_length=5,
+    vocab_size=10000,
+    train_max_batch_count=1000,
+    test_max_batch_count=100,
+    force_create=False,
+):
     data_dir = "./data/tiny_stories"
     # data_dir = "./drive/MyDrive/SuperQuantization/data/tiny_stories"
     data_files = {
@@ -58,8 +64,12 @@ def get_data(seq_length=5, vocab_size=10000, force_create=False):
         with open(data_files["vocab"], "wb") as f:
             pkl.dump(vocab, f)
 
-    train_dataset = TinyStoriesDataset(tokenized_train, seq_length)
-    validation_dataset = TinyStoriesDataset(tokenized_train, seq_length)
+    train_dataset = TinyStoriesDataset(
+        tokenized_train, seq_length, train_max_batch_count
+    )
+    validation_dataset = TinyStoriesDataset(
+        tokenized_train, seq_length, test_max_batch_count
+    )
 
     return train_dataset, validation_dataset, vocab
 
