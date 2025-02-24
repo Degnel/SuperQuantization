@@ -13,7 +13,6 @@ def get_data(
     force_create=False,
 ):
     data_dir = "./data/tiny_stories"
-    # data_dir = "./drive/MyDrive/SuperQuantization/data/tiny_stories"
     data_files = {
         "tokenized_train": os.path.join(data_dir, "tokenized_train.pkl"),
         "tokenized_validation": os.path.join(data_dir, "tokenized_validation.pkl"),
