@@ -3,7 +3,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from tests.transformer.attention import MultiHeadAttention
+from tests.text_generation.attention import MultiHeadAttention
 import torch.nn as nn
 from super_quantization.super_quantization import QuantizedLayer
 import torch
@@ -24,6 +24,7 @@ class Transformer(nn.Module):
         quantize_Q (bool, optional): If True, quantizes the query projection layers. Defaults to False.
         quantize_K (bool, optional): If True, quantizes the key projection layers. Defaults to False.
         quantize_V (bool, optional): If True, quantizes the value projection layers. Defaults to False.
+        quantize_O (bool, optional): If True, quantizes the output projection layers. Defaults to False.
         quantize_fc_1 (bool, optional): If True, quantizes the first feedforward layers. Defaults to False.
         quantize_fc_2 (bool, optional): If True, quantizes the second feedforward layers. Defaults to False.
         vocab_size (int, optional): The size of the input vocabulary. If None, no embedding layer is added. Defaults to None.
@@ -41,6 +42,7 @@ class Transformer(nn.Module):
         quantize_Q: bool = False,
         quantize_K: bool = False,
         quantize_V: bool = False,
+        quantize_O: bool = False,
         quantize_fc_1: bool = False,
         quantize_fc_2: bool = False,
         vocab_size: int | None = None,
@@ -63,6 +65,7 @@ class Transformer(nn.Module):
                     quantize_Q,
                     quantize_K,
                     quantize_V,
+                    quantize_O,
                     quantize_fc_1,
                     quantize_fc_2,
                     lora_ratio,
@@ -187,7 +190,7 @@ class Transformer(nn.Module):
 class TransformerEncoderLayer(nn.Module):
     """
     Implements a single layer of a Transformer encoder with optional quantization
-    for query (Q), key (K), value (V), and feedforward (fc_1, fc_2) layers.
+    for query (Q), key (K), value (V), output (O), and feedforward (fc_1, fc_2) layers.
 
     Args:
         d_model (int): The dimensionality of the input embeddings.
@@ -197,6 +200,7 @@ class TransformerEncoderLayer(nn.Module):
         quantize_Q (bool, optional): If True, quantizes the query projection layer. Defaults to False.
         quantize_K (bool, optional): If True, quantizes the key projection layer. Defaults to False.
         quantize_V (bool, optional): If True, quantizes the value projection layer. Defaults to False.
+        quantize_O (bool, optional): If True, quantizes the output projection layer. Defaults to False.
         quantize_fc_1 (bool, optional): If True, quantizes the first feedforward layer. Defaults to False.
         quantize_fc_2 (bool, optional): If True, quantizes the second feedforward layer. Defaults to False.
     """
@@ -210,13 +214,14 @@ class TransformerEncoderLayer(nn.Module):
         quantize_Q: bool = False,
         quantize_K: bool = False,
         quantize_V: bool = False,
+        quantize_O: bool = False,
         quantize_fc_1: bool = False,
         quantize_fc_2: bool = False,
         lora_ratio: float = 4,
     ) -> None:
         super(TransformerEncoderLayer, self).__init__()
         self.self_attention = MultiHeadAttention(
-            d_model, n_heads, quantize_Q, quantize_K, quantize_V, lora_ratio
+            d_model, n_heads, quantize_Q, quantize_K, quantize_V, quantize_O, lora_ratio
         )
 
         if quantize_fc_1:

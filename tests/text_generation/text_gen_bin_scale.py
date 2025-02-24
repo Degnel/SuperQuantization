@@ -36,11 +36,8 @@ sq_model = Transformer(
     max_context_size=seq_length,
 ).to(device)
 
-# sq_model.train_model(
-#     train_dataloader, epochs=200, lr=0.001
-# )
+# On va utiliser notre super quantizer pour quantiser que ce que l'on veut dans les proportions voulues
 
-# sq_model.test_model(validation_dataloader)
 sq_mesure = sq.mesure(sq_model)
 print("Total bits of information in super quantized model: ", sq_mesure)
 print("Active total bits of information in super quantized model: ", sq_mesure - 32 * sq_dim * (2*vocab_size - seq_length))
