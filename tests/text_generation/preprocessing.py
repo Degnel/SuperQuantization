@@ -55,7 +55,7 @@ def get_data(
         tokenized_validation = [tokenize(tokens, vocab) for tokens in validation_tokens]
 
         # Enregistrer les données dans des fichiers
-        os.makedirs(data_dir, exist_ok=True)
+        os.makedirs(data_dir, exist_ok=True)          
         with open(data_files["tokenized_train"], "wb") as f:
             pkl.dump(tokenized_train, f)
         with open(data_files["tokenized_validation"], "wb") as f:
