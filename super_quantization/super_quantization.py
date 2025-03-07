@@ -43,8 +43,7 @@ class QuantizedLayer(nn.Module):
         self.weight = nn.Parameter(
             # (torch.randint(0, 4, (in_features, out_features)) - 1).float()
             # torch.zeros(in_features, out_features, d(type=torch.float32),
-            torch.randn(in_features, out_features, dtype=torch.float32)
-            * std
+            torch.randn(in_features, out_features, dtype=torch.float32) * std
         )
         if bias:
             self.bias = nn.Parameter(torch.randn(out_features, dtype=torch.float32))

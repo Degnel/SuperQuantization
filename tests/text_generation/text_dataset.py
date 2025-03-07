@@ -2,8 +2,10 @@ from torch.utils.data import IterableDataset
 import torch
 
 
-class TinyStoriesDataset(IterableDataset):
-    def __init__(self, dataset: list, sequence_length: int, max_batch_count: int):
+class TextDataset(IterableDataset):
+    def __init__(
+        self, dataset: list, sequence_length: int, step: int, max_batch_count: int
+    ):
         """
         Dataset itératif pour générer des séquences (entrée, cible).
 
@@ -14,6 +16,7 @@ class TinyStoriesDataset(IterableDataset):
         """
         self.dataset = dataset
         self.sequence_length = sequence_length
+        self.step = step
         self.max_batch_count = max_batch_count
 
     def __iter__(self):
@@ -24,17 +27,21 @@ class TinyStoriesDataset(IterableDataset):
         """
         batch_counter = 0
         for tokens in self.dataset:
-            if len(tokens) >= self.sequence_length + 1:
-                n_batches = (len(tokens) - 1) // self.sequence_length
-                
+            if len(tokens) - 1 >= self.sequence_length:
+                n_batches = (len(tokens) - 2 - self.sequence_length) // self.step + 1
+
                 for i in range(n_batches):
                     if batch_counter >= self.max_batch_count:
                         return
-                    start = i * self.sequence_length
-                    X = tokens[start: start + self.sequence_length]
-                    y = tokens[start + 1: start + self.sequence_length + 1]
-                    yield torch.tensor(X, dtype=torch.long), torch.tensor(y, dtype=torch.long)
+                    start = i * self.step
+                    X = tokens[start : start + self.sequence_length]
+                    y = tokens[start + 1 : start + self.sequence_length + 1]
+                    yield (
+                        torch.tensor(X, dtype=torch.long),
+                        torch.tensor(y, dtype=torch.long),
+                    )
                     batch_counter += 1
+
 
 # from torch.utils.data import IterableDataset
 # import torch

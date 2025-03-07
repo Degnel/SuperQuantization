@@ -2,9 +2,9 @@ from datasets import load_dataset
 from collections import Counter
 import os
 import pickle as pkl
-from tests.text_generation.text_dataset import TextDataset
 import re
 from tqdm import tqdm
+from time import time
 
 
 def split_camel_case(token):
@@ -37,11 +37,7 @@ def tokenize(tokens, vocab, unk_token=0):
 
 
 def get_data(
-    seq_length=5,
     vocab_size=10000,
-    train_max_batch_count=1000,
-    test_max_batch_count=100,
-    step=1,
     force_create=False,
 ):
     data_dir = "./data/codeparrot"
@@ -62,12 +58,13 @@ def get_data(
         with open(data_files["vocab"], "rb") as f:
             vocab = pkl.load(f)
     else:
+        t = time()
         print("Loading datasets...")
         train_texts = load_dataset(
-            "codeparrot/codeparrot-train-v2-near-dedup", split="train[:1000]"
+            "codeparrot/codeparrot-train-v2-near-dedup", split="train[:10000]"
         )["content"]
         validation_texts = load_dataset(
-            "codeparrot/codeparrot-valid-v2-near-dedup", split="train[:1000]"
+            "codeparrot/codeparrot-valid-v2-near-dedup", split="train[:10000]"
         )["content"]
 
         print("Splitting training data...")
@@ -112,11 +109,7 @@ def get_data(
         with open(data_files["vocab"], "wb") as f:
             pkl.dump(vocab, f)
 
-    train_dataset = TextDataset(
-        tokenized_train, seq_length, step, train_max_batch_count
-    )
-    validation_dataset = TextDataset(
-        tokenized_validation, seq_length, step, test_max_batch_count
-    )
+        print(f"Data loaded in {time() - t:.2f}s")
 
-    return train_dataset, validation_dataset, vocab
+
+get_data(force_create=True)

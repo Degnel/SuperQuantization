@@ -44,9 +44,10 @@ def train_model(model: nn.Module, train_loader, epochs=2, lr=0.01, grad_clamp=0.
     for epoch in range(epochs):
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):
-            data, target = data.to(
-                "cuda" if torch.cuda.is_available() else "cpu"
-            ), target.to("cuda" if torch.cuda.is_available() else "cpu")
+            data, target = (
+                data.to("cuda" if torch.cuda.is_available() else "cpu"),
+                target.to("cuda" if torch.cuda.is_available() else "cpu"),
+            )
             model = model.to(data.device)
             data = data.view(data.size(0), -1)
             outputs = model(data)
@@ -58,7 +59,7 @@ def train_model(model: nn.Module, train_loader, epochs=2, lr=0.01, grad_clamp=0.
 
             if (batch_idx + 1) % 100 == 0:
                 print(
-                    f"Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {loss.item():.4f}"
+                    f"Epoch [{epoch + 1}/{epochs}], Step [{batch_idx + 1}/{len(train_loader)}], Loss: {loss.item():.4f}"
                 )
 
     return loss.item()
@@ -71,9 +72,10 @@ def brut_force_train(model: nn.Module, train_loader, epochs=2):
         model.eval()
         for batch_idx, (data, target) in enumerate(train_loader):
             print("Training step", batch_idx)
-            data, target = data.to(
-                "cuda" if torch.cuda.is_available() else "cpu"
-            ), target.to("cuda" if torch.cuda.is_available() else "cpu")
+            data, target = (
+                data.to("cuda" if torch.cuda.is_available() else "cpu"),
+                target.to("cuda" if torch.cuda.is_available() else "cpu"),
+            )
             model = model.to(data.device)
             data = data.view(data.size(0), -1)
             for params in model.parameters():
@@ -92,7 +94,7 @@ def brut_force_train(model: nn.Module, train_loader, epochs=2):
 
             if (batch_idx + 1) % 100 == 0:
                 print(
-                    f"Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {loss.item():.4f}"
+                    f"Epoch [{epoch + 1}/{epochs}], Step [{batch_idx + 1}/{len(train_loader)}], Loss: {loss.item():.4f}"
                 )
 
 
@@ -102,9 +104,10 @@ def test_model(model, test_loader):
     total = 0
     with torch.no_grad():
         for data, target in test_loader:
-            data, target = data.to(
-                "cuda" if torch.cuda.is_available() else "cpu"
-            ), target.to("cuda" if torch.cuda.is_available() else "cpu")
+            data, target = (
+                data.to("cuda" if torch.cuda.is_available() else "cpu"),
+                target.to("cuda" if torch.cuda.is_available() else "cpu"),
+            )
             data = data.view(data.size(0), -1)
             outputs = model(data)
             _, predicted = torch.max(outputs, 1)

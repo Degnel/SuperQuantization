@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import math
 from super_quantization.super_quantization import QuantizedLayer
 
+
 class MultiHeadAttention(nn.Module):
     def __init__(
         self,
@@ -77,7 +78,9 @@ class MultiHeadAttention(nn.Module):
         # Reforme en (batch_size, n_heads, seq_len, lora_dim)
         y = y.reshape(batch_size, self.n_heads, seq_len, self.lora_dim)
         # Permute pour obtenir (batch_size, seq_len, n_heads, lora_dim) puis concatène les têtes
-        y = y.permute(0, 2, 1, 3).reshape(batch_size, seq_len, self.n_heads * self.lora_dim)
+        y = y.permute(0, 2, 1, 3).reshape(
+            batch_size, seq_len, self.n_heads * self.lora_dim
+        )
 
         # Application de la projection de sortie unique
         output = self.O(y)  # (batch_size, seq_len, d_model)
@@ -95,6 +98,6 @@ class MultiHeadAttention(nn.Module):
         batch_size, seq_len, _ = x.size()
         return (
             x.reshape(batch_size, seq_len, self.n_heads, last_dim)
-             .permute(0, 2, 1, 3)
-             .reshape(batch_size * self.n_heads, seq_len, last_dim)
+            .permute(0, 2, 1, 3)
+            .reshape(batch_size * self.n_heads, seq_len, last_dim)
         )

@@ -43,7 +43,10 @@ sq_model = Transformer(
 # sq_model.test_model(validation_dataloader)
 sq_mesure = sq.mesure(sq_model)
 print("Total bits of information in super quantized model: ", sq_mesure)
-print("Active total bits of information in super quantized model: ", sq_mesure - 32 * sq_dim * (2*vocab_size - seq_length))
+print(
+    "Active total bits of information in super quantized model: ",
+    sq_mesure - 32 * sq_dim * (2 * vocab_size - seq_length),
+)
 
 train_dataset, validation_dataset, vocab = get_data(
     seq_length, vocab_size, train_batch_count, test_batch_count
@@ -52,7 +55,9 @@ train_dataloader = DataLoader(train_dataset, batch_size=16)
 validation_dataloader = DataLoader(validation_dataset, batch_size=16)
 
 sq_recipe = ProgressiveRecipes(sq_model)
-sq_recipe.base_recipe(epochs=40, iterations=10, global_trainning=0, scaling_factor=1, constructive=True)
+sq_recipe.base_recipe(
+    epochs=40, iterations=10, global_trainning=0, scaling_factor=1, constructive=True
+)
 trainer = ProgressiveTrainer(sq_recipe)
 trainer.train(
     train_dataloader, optim.AdamW, nn.CrossEntropyLoss(), validation_dataloader

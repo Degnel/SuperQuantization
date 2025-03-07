@@ -85,9 +85,12 @@ class SuperQuantizer(nn.Module):
     def mesure(self, model: nn.Module):
         total_bits = 0
         leaf_modules = self._iterate_mod_tree(model)
+        ids = set()
         for _, module in leaf_modules:
             for name, p in module.named_parameters():
-                if p.requires_grad:
+                param_id = id(p)
+                if p.requires_grad and param_id not in ids:
+                    ids |= {param_id}
                     if module.__class__ is QuantizedLayer and name == "weight":
                         coef = self.QUANTIZE_COEFS[module.quantize_mode]
                     else:

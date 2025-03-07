@@ -48,7 +48,7 @@ class Transformer(nn.Module):
         vocab_size: int | None = None,
         max_context_size: int = 512,
         mask: bool = True,
-        lora_ratio: float = 4
+        lora_ratio: float = 4,
     ):
         super(Transformer, self).__init__()
         self.d_model = d_model
@@ -78,7 +78,7 @@ class Transformer(nn.Module):
             self.embedding = nn.Embedding(
                 vocab_size + 1, d_model
             )  # add one for the special token if a word is not in the dictionnary
-            self.output_projection = nn.Linear(d_model, vocab_size, bias=False)
+            self.output_projection = nn.Linear(d_model, vocab_size + 1, bias=False)
             self.output_projection.weight = self.embedding.weight
             self.position_embedding = nn.Embedding(max_context_size, d_model)
         else:

@@ -13,7 +13,6 @@ class Trainner:
         batch_size: int = 16,
         num_epochs: int = 200,
     ):
-
         self.model = model
         self.train_data = train_data
         self.test_data = test_data
