@@ -10,6 +10,40 @@ import torch
 from torch import optim
 
 
+class RoPE(nn.Module):
+    """
+    Implémente l'embedding rotationnel.
+    Ici, on pré-calcule les matrices sinusoïdales sur une séquence de longueur max_seq_len (fixée à 256 si non précisé)
+    et on applique la rotation sur les paires de dimensions.
+    """
+    def __init__(self, dim: int, max_seq_len: int = 256):
+        super().__init__()
+        self.dim = dim
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, dim, 2).float() / dim))
+        positions = torch.arange(max_seq_len).float()
+        freqs = torch.einsum("i,j -> ij", positions, inv_freq)
+        self.register_buffer("cos", freqs.cos())
+        self.register_buffer("sin", freqs.sin())
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Applique la rotation sur les embeddings.
+        x : Tensor de taille (batch, seq_len, d_model)
+        """
+        seq_len = x.size(1)
+        cos = self.cos[:seq_len, :]
+        sin = self.sin[:seq_len, :]
+        cos = cos.unsqueeze(0)
+        sin = sin.unsqueeze(0)
+        x_even = x[..., ::2]
+        x_odd  = x[..., 1::2]
+        out_even = x_even * cos - x_odd * sin
+        out_odd  = x_even * sin + x_odd * cos
+        x_rot = torch.zeros_like(x)
+        x_rot[..., ::2] = out_even
+        x_rot[..., 1::2] = out_odd
+        return x_rot
+
 class Transformer(nn.Module):
     """
     Implements a Transformer model with configurable depth and optional quantization
@@ -49,12 +83,29 @@ class Transformer(nn.Module):
         max_context_size: int = 512,
         mask: bool = True,
         lora_ratio: float = 4,
+        rope: bool = True,
     ):
         super(Transformer, self).__init__()
         self.d_model = d_model
         self.mask = mask
+        self.rope = rope
 
-        # Liste des couches de l'encodeur
+        if vocab_size:
+            self.embedding = nn.Embedding(
+                vocab_size + 1, d_model
+            )  # add one for the special token if a word is not in the dictionnary
+            self.output_projection = nn.Linear(d_model, vocab_size + 1, bias=False)
+            self.output_projection.weight = self.embedding.weight
+            if rope:
+                self.position_embedding = RoPE(d_model, max_context_size)
+            else:
+                self.position_embedding = nn.Embedding(max_context_size, d_model)
+
+        else:
+            self.embedding = None
+            self.output_projection = None
+            self.position_embedding = None
+
         self.encoder_layers = nn.ModuleList(
             [
                 TransformerEncoderLayer(
@@ -69,22 +120,11 @@ class Transformer(nn.Module):
                     quantize_fc_1,
                     quantize_fc_2,
                     lora_ratio,
+                    self.position_embedding if rope else None,
                 )
                 for _ in range(depth)
             ]
         )
-
-        if vocab_size:
-            self.embedding = nn.Embedding(
-                vocab_size + 1, d_model
-            )  # add one for the special token if a word is not in the dictionnary
-            self.output_projection = nn.Linear(d_model, vocab_size + 1, bias=False)
-            self.output_projection.weight = self.embedding.weight
-            self.position_embedding = nn.Embedding(max_context_size, d_model)
-        else:
-            self.embedding = None
-            self.output_projection = None
-            self.position_embedding = None
 
     def forward(self, x: torch.Tensor):
         """
@@ -98,17 +138,16 @@ class Transformer(nn.Module):
 
         if self.embedding is not None:
             x = x.to(torch.int32)
-            x = (
-                self.embedding(x) + self.position_embedding.weight
-            )  # [batch_size, seq_len, d_model]
+            x = self.embedding(x) # [batch_size, seq_len, d_model]
+            if not self.rope:
+                 x = x + self.position_embedding.weight
 
-        # Passage par les couches de l'encodeur
         for layer in self.encoder_layers:
             x = layer(x, mask)
 
-        # Projection finale si applicable
         if self.output_projection is not None:
-            x = x - self.position_embedding.weight
+            if not self.rope:
+                x = x - self.position_embedding.weight
             x = self.output_projection(x)
 
         return x.transpose(1, 2)
@@ -218,10 +257,11 @@ class TransformerEncoderLayer(nn.Module):
         quantize_fc_1: bool = False,
         quantize_fc_2: bool = False,
         lora_ratio: float = 4,
+        positionnal_embedding: RoPE | None = None,
     ) -> None:
         super(TransformerEncoderLayer, self).__init__()
         self.self_attention = MultiHeadAttention(
-            d_model, n_heads, quantize_Q, quantize_K, quantize_V, quantize_O, lora_ratio
+            d_model, n_heads, quantize_Q, quantize_K, quantize_V, quantize_O, lora_ratio, positionnal_embedding
         )
 
         if quantize_fc_1:

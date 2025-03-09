@@ -15,11 +15,13 @@ class MultiHeadAttention(nn.Module):
         quantize_V=False,
         quantize_O=False,
         lora_ratio=4,
+        positionnal_embedding=None,
     ):
         super(MultiHeadAttention, self).__init__()
         self.d_model = d_model
         self.n_heads = n_heads
         self.lora_dim = int(d_model / lora_ratio)
+        self.positionnal_embedding = positionnal_embedding
 
         # Projection pour Q
         if quantize_Q:
@@ -57,8 +59,9 @@ class MultiHeadAttention(nn.Module):
         """
         batch_size, seq_len, _ = x.size()
 
-        # Calcul de Q, K et V
-        q, k, v = self.Q(x), self.K(x), self.V(x)
+        # Calcul du RoPE si nécessaire et de Q, K et V
+        qk_x = self.positionnal_embedding(x) if self.positionnal_embedding else x
+        q, k, v = self.Q(qk_x), self.K(qk_x), self.V(x)
 
         # Reshape pour séparer les têtes: (batch_size*n_heads, seq_len, lora_dim)
         query = self._reshape_to_batches(q, self.lora_dim)

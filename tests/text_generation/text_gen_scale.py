@@ -17,8 +17,8 @@ import collections
 
 seq_length = 256
 vocab_size = 10000
-train_batch_count = 100000
-test_batch_count = 10000
+train_batch_count = 500000
+test_batch_count = 50000
 batch_size = 32
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 sq = SuperQuantizer()
@@ -28,14 +28,14 @@ train_dataset, validation_dataset, vocab = get_data(
 
 # depths = [2, 4, 8, 16]
 # depths = [1, 2, 3, 4]
-depths = [4]
+depths = [1]
 quant_types = {
-    # "all": "_1012",
+    # "all": {"K": "_1012", "Q": "_1012", "O": "_1012", "V": "_1012", "fc_1": "_1012", "fc_2": "_1012"},
     # "small": "01",
     "fc": {"fc_1": "01", "fc_2": "01"},
-    # "fck": {"K": "01", "fc_1": "01", "fc_2": "01"},
+    "fck": {"K": "01", "fc_1": "01", "fc_2": "01"},
     # "key": {"K": "01"},
-    "att": {"K": "01", "Q": "01"},
+    # "att": {"K": "01", "Q": "01"},
     # "out": {"O": "01"},
     # "val": {"V": "01"},
     # "fc_1": {"fc_1": "_1012"},
@@ -47,12 +47,12 @@ def compare_models():
     for depth in depths:
         model = Transformer(
             # d_model=128*depth,
-            d_model=64,
+            d_model=32*depth,
             # d_model=4*depth,
             # n_heads=depth,
             n_heads=2,
             # d_ff=512*depth,
-            d_ff=256*depth,
+            d_ff=128*depth, 
             # d_ff=16*depth,
             depth=depth,
             vocab_size=vocab_size,
@@ -61,16 +61,13 @@ def compare_models():
         ).to(device)
         analyze_model_parameters(model)
         print("Params for base:", sum(p.numel() for p in model.parameters() if p.requires_grad) + model.d_model*(seq_length - vocab_size - 1))
-        models = {"base": model}
-        # models = {}
-
-        print(sq.mesure(model)/32)
+        # models = {"base": model}
+        models = {}
 
         for key, qtype in quant_types.items():
             models[key] = sq.quantize(model, qtype, inplace=False)
             mesure = sq.mesure(models[key])
-            print(mesure/32)
-            print(f"Mesure for model {key}: {mesure/32 + model.d_model*(seq_length - vocab_size - 1)}")
+            print(f"Mesure for model {key}: {int(mesure/32 + model.d_model*(seq_length - vocab_size - 1))}")
 
         for name, mod in models.items():
             _, test_loss = train(mod, name)
@@ -111,17 +108,23 @@ def analyze_model_parameters(model):
             key = "fc_2_weights" if "weight" in name else "fc_2_bias"
         elif "layer_norm" in name:
             key = "LayerNorm_weights" if "weight" in name else "LayerNorm_bias"
+        elif "embedding.weight" in name:
+            key = "embedding.weight"
         else:
             key = name
         
         param_groups[key] += param_size
 
     param_distribution = {k: (v / total_params) * 100 for k, v in param_groups.items()}
+    active_param_distribution = {k: (v / (total_params - param_groups["embedding.weight"])) * 100 for k, v in param_groups.items()}
     
     for param_type, percentage in param_distribution.items():
         print(f"{param_type}: {percentage:.2f}%")
     
-    return param_distribution
+    for param_type, percentage in active_param_distribution.items():
+        print(f"Active {param_type}: {percentage:.2f}%")
+    
+    return param_distribution, active_param_distribution
 
 def train(model, name):
     dataloader_args = {"batch_size": batch_size}
