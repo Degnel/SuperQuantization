@@ -15,11 +15,11 @@ from frEase.recipes import ProgressiveRecipes
 from frEase.trainer import ProgressiveTrainer
 import collections
 
-wikipedia = False
+wikipedia = True
 seq_length = 256
 vocab_size = 10000
-train_batch_count = 50000
-test_batch_count = 5000
+train_batch_count = 500000
+test_batch_count = 50000
 batch_size = 32
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 sq = SuperQuantizer()
@@ -34,12 +34,15 @@ quant_types = {
     # "all": {"K": "_1012", "Q": "_1012", "O": "_1012", "V": "_1012", "fc_1": "_1012", "fc_2": "_1012"},
     # "small": "01",
     "fc": {"fc_1": "01", "fc_2": "01"},
-    "fck": {"K": "01", "fc_1": "01", "fc_2": "01"},
-    # "key": {"K": "01"},
+    # "key": {"K": "01", "Q": "01"},
+    "fcv": {"V": "_1012", "fc_1": "01", "fc_2": "01"},
     # "att": {"K": "01", "Q": "01"},
+    "valout": {"K": "01", "V": "01"},
     # "out": {"O": "01"},
-    # "val": {"V": "01"},
+    "val": {"V": "01"},
+    "fco": {"V": "01", "fc_1": "01", "fc_2": "01"},
     # "fc_1": {"fc_1": "_1012"},
+    "fcok": {"K": "01", "V": "01", "fc_1": "01", "fc_2": "01"}
 }
 
 
@@ -59,7 +62,8 @@ def compare_models():
             vocab_size=vocab_size,
             max_context_size=seq_length,
             lora_ratio=4,
-            rope=False
+            rope=False,
+            fc_quant_normalisation=True
         ).to(device)
         analyze_model_parameters(model)
         print("Params for base:", sum(p.numel() for p in model.parameters() if p.requires_grad) + model.d_model*(seq_length - vocab_size - 1))
@@ -134,7 +138,7 @@ def train(model, name):
     validation_dataloader = DataLoader(validation_dataset, **dataloader_args)
     recipe = ProgressiveRecipes(model)
 
-    recipe.base_recipe(epochs=10, global_trainning=4, constructive=False)
+    recipe.base_recipe(epochs=1, global_trainning=1, constructive=False)
     # if name == "base":
     #     recipe.base_recipe(epochs=400, global_trainning=1, constructive=False)
     #     #  recipe.base_recipe(epochs=1, global_trainning=1, constructive=False)
@@ -149,6 +153,7 @@ def train(model, name):
         optim.AdamW,
         nn.CrossEntropyLoss(),
         validation_dataloader,
+        show_batch_score=False,
         checkpoints_saving_path=checkpoint_name,
         results_saving_name=res_name,
     )

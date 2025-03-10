@@ -8,6 +8,7 @@ import torch.nn as nn
 from super_quantization.super_quantization import QuantizedLayer
 import torch
 from torch import optim
+from math import sqrt, pi
 
 
 class RoPE(nn.Module):
@@ -84,6 +85,7 @@ class Transformer(nn.Module):
         mask: bool = True,
         lora_ratio: float = 4,
         rope: bool = True,
+        fc_quant_normalisation: bool = False
     ):
         super(Transformer, self).__init__()
         self.d_model = d_model
@@ -121,6 +123,7 @@ class Transformer(nn.Module):
                     quantize_fc_2,
                     lora_ratio,
                     self.position_embedding if rope else None,
+                    fc_quant_normalisation
                 )
                 for _ in range(depth)
             ]
@@ -259,8 +262,12 @@ class TransformerEncoderLayer(nn.Module):
         quantize_fc_2: bool = False,
         lora_ratio: float = 4,
         positionnal_embedding: RoPE | None = None,
+        fc_quant_normalisation: bool = False
     ) -> None:
         super(TransformerEncoderLayer, self).__init__()
+        self.d_model = d_model
+        self.d_ff = d_ff
+        self.fc_quant_normalisation = fc_quant_normalisation
         self.self_attention = MultiHeadAttention(
             d_model, n_heads, quantize_Q, quantize_K, quantize_V, quantize_O, lora_ratio, positionnal_embedding
         )
@@ -303,6 +310,11 @@ class TransformerEncoderLayer(nn.Module):
 
         # Réseau feed-forward
         ff_output = self.fc_2(self.activation(self.fc_1(x)))
+        if self.fc_quant_normalisation:
+            if self.fc_1.__class__ is QuantizedLayer:
+                ff_output = ff_output * 2 / (sqrt(self.d_model) * (1-1/pi))
+            if self.fc_2.__class__ is QuantizedLayer:
+                ff_output = ff_output * sqrt(2 / self.d_ff)
         x = self.layer_norm2(x + self.dropout(ff_output))
         # x = F.normalize(x + self.dropout(ff_output), p=2, dim=-1)
         # x = F.normalize(x + ff_output, p=2, dim=-1)
