@@ -43,8 +43,9 @@ def get_data(
     test_max_batch_count=100,
     step=1,
     force_create=False,
+    wiki=False
 ):
-    data_dir = "./data/codeparrot"
+    data_dir = "./data/wikipedia" if wiki else "./data/codeparrot"
     data_files = {
         "tokenized_train": os.path.join(data_dir, "tokenized_train.pkl"),
         "tokenized_validation": os.path.join(data_dir, "tokenized_validation.pkl"),

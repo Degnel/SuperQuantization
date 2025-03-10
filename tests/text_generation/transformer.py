@@ -148,6 +148,7 @@ class Transformer(nn.Module):
         if self.output_projection is not None:
             if not self.rope:
                 x = x - self.position_embedding.weight
+
             x = self.output_projection(x)
 
         return x.transpose(1, 2)

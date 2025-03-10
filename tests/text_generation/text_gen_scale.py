@@ -15,15 +15,16 @@ from frEase.recipes import ProgressiveRecipes
 from frEase.trainer import ProgressiveTrainer
 import collections
 
+wikipedia = False
 seq_length = 256
 vocab_size = 10000
-train_batch_count = 500000
-test_batch_count = 50000
+train_batch_count = 50000
+test_batch_count = 5000
 batch_size = 32
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 sq = SuperQuantizer()
 train_dataset, validation_dataset, vocab = get_data(
-    seq_length, vocab_size, train_batch_count, test_batch_count
+    seq_length, vocab_size, train_batch_count, test_batch_count, wiki=wikipedia
 )
 
 # depths = [2, 4, 8, 16]
@@ -57,7 +58,8 @@ def compare_models():
             depth=depth,
             vocab_size=vocab_size,
             max_context_size=seq_length,
-            lora_ratio=4
+            lora_ratio=4,
+            rope=False
         ).to(device)
         analyze_model_parameters(model)
         print("Params for base:", sum(p.numel() for p in model.parameters() if p.requires_grad) + model.d_model*(seq_length - vocab_size - 1))
@@ -132,7 +134,7 @@ def train(model, name):
     validation_dataloader = DataLoader(validation_dataset, **dataloader_args)
     recipe = ProgressiveRecipes(model)
 
-    recipe.base_recipe(epochs=10, iterations=4, constructive=True)
+    recipe.base_recipe(epochs=10, global_trainning=4, constructive=False)
     # if name == "base":
     #     recipe.base_recipe(epochs=400, global_trainning=1, constructive=False)
     #     #  recipe.base_recipe(epochs=1, global_trainning=1, constructive=False)
