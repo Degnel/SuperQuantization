@@ -312,7 +312,7 @@ class TransformerEncoderLayer(nn.Module):
         ff_output = self.fc_2(self.activation(self.fc_1(x)))
         if self.fc_quant_normalisation:
             if self.fc_1.__class__ is QuantizedLayer:
-                ff_output = ff_output * 2 / (sqrt(self.d_model) * (1-1/pi))
+                ff_output = ff_output * 2 / (sqrt(self.d_model) * (1 - 1 / pi))
             if self.fc_2.__class__ is QuantizedLayer:
                 ff_output = ff_output * sqrt(2 / self.d_ff)
         x = self.layer_norm2(x + self.dropout(ff_output))

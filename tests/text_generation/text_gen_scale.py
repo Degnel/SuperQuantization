@@ -15,7 +15,7 @@ from frEase.recipes import ProgressiveRecipes
 from frEase.trainer import ProgressiveTrainer
 import collections
 
-wikipedia = True
+wikipedia = False
 seq_length = 256
 vocab_size = 10000
 train_batch_count = 500000
@@ -29,20 +29,10 @@ train_dataset, validation_dataset, vocab = get_data(
 
 # depths = [2, 4, 8, 16]
 # depths = [1, 2, 3, 4]
-depths = [1]
+depths = [2]
 quant_types = {
-    # "all": {"K": "_1012", "Q": "_1012", "O": "_1012", "V": "_1012", "fc_1": "_1012", "fc_2": "_1012"},
-    # "small": "01",
     "fc": {"fc_1": "01", "fc_2": "01"},
-    # "key": {"K": "01", "Q": "01"},
     "fcv": {"V": "_1012", "fc_1": "01", "fc_2": "01"},
-    # "att": {"K": "01", "Q": "01"},
-    "valout": {"K": "01", "V": "01"},
-    # "out": {"O": "01"},
-    "val": {"V": "01"},
-    "fco": {"V": "01", "fc_1": "01", "fc_2": "01"},
-    # "fc_1": {"fc_1": "_1012"},
-    "fcok": {"K": "01", "V": "01", "fc_1": "01", "fc_2": "01"}
 }
 
 
@@ -52,12 +42,10 @@ def compare_models():
         model = Transformer(
             # d_model=128*depth,
             d_model=32*depth,
-            # d_model=4*depth,
             # n_heads=depth,
             n_heads=2,
             # d_ff=512*depth,
-            d_ff=128*depth, 
-            # d_ff=16*depth,
+            d_ff=128*depth,
             depth=depth,
             vocab_size=vocab_size,
             max_context_size=seq_length,
@@ -76,20 +64,10 @@ def compare_models():
             print(f"Mesure for model {key}: {int(mesure/32 + model.d_model*(seq_length - vocab_size - 1))}")
 
         for name, mod in models.items():
-            _, test_loss = train(mod, name)
-            # print("Train:", evaluate(mod, train_dataset))
-            # print("Test:", evaluate(mod, validation_dataset))
+            _, test_loss = train(mod, name, depth)
             test_losses.setdefault(name, []).append((depth, test_loss))
 
     plot_test_loss(test_losses)
-
-# def evaluate(model, dataset):
-#     loss = 0
-#     for i, (inputs, targets) in enumerate(dataset):
-#         outputs = model(inputs)
-#         loss += nn.CrossEntropyLoss()(outputs, targets)
-    
-#     return loss.item() / (i + 1)
 
 
 def analyze_model_parameters(model):
@@ -132,13 +110,13 @@ def analyze_model_parameters(model):
     
     return param_distribution, active_param_distribution
 
-def train(model, name):
+def train(model, name, depth):
     dataloader_args = {"batch_size": batch_size}
     train_dataloader = DataLoader(train_dataset, **dataloader_args)
     validation_dataloader = DataLoader(validation_dataset, **dataloader_args)
     recipe = ProgressiveRecipes(model)
 
-    recipe.base_recipe(epochs=1, global_trainning=1, constructive=False)
+    recipe.base_recipe(epochs=10, global_trainning=1, constructive=False)
     # if name == "base":
     #     recipe.base_recipe(epochs=400, global_trainning=1, constructive=False)
     #     #  recipe.base_recipe(epochs=1, global_trainning=1, constructive=False)
@@ -146,8 +124,8 @@ def train(model, name):
     #     recipe.base_recipe(epochs=40, iterations=10, global_trainning=0, scaling_factor=1)
     #     # recipe.base_recipe(epochs=1, iterations=1, global_trainning=0, scaling_factor=1)
     trainer = ProgressiveTrainer(recipe)
-    checkpoint_name = f"./checkpoints/{name}"
-    res_name = f"./results/{name}.pkl"
+    checkpoint_name = f"./checkpoints/{name}/depth_{depth}"
+    res_name = f"./results/{name}/depth_{depth}.pkl"
     return trainer.train(
         train_dataloader,
         optim.AdamW,
