@@ -10,6 +10,13 @@ def clamp01(tensor):
 def clamp_11(tensor):
     return torch.sign(tensor)
 
+def clamp_0505(tensor):
+    return torch.where(tensor < 0, torch.tensor(-0.5, dtype=tensor.dtype), 
+                              torch.tensor(0.5, dtype=tensor.dtype))
+
+def clamp_10(tensor):
+    return torch.where(tensor < 0, torch.tensor(-1, dtype=tensor.dtype), 
+                              torch.tensor(0, dtype=tensor.dtype))
 
 def clamp_2_112(tensor):
     abs = torch.abs(tensor)
@@ -25,12 +32,25 @@ def clamp_1012(tensor):
     return torch.clamp(torch.round(tensor), -1, 2)
 
 
+def clamp_10051(tensor):
+    return torch.where(tensor < -0.5, torch.tensor(-1.0, dtype=tensor.dtype),
+               torch.where(tensor < 0.25, torch.tensor(0.0, dtype=tensor.dtype),
+                   torch.where(tensor < 0.75, torch.tensor(0.5, dtype=tensor.dtype),
+                       torch.tensor(1.0, dtype=tensor.dtype)
+                   )
+               )
+           )
+
+
 CLAMPING_FUNCTIONS = {
     "01": clamp01,
     "_11": clamp_11,
+    "_10": clamp_10,
+    "_0.50.5": clamp_0505,
     "_2_112": clamp_2_112,
     "_2_101": clamp_2_101,
     "_1012": clamp_1012,
+    "_100.51": clamp_10051,
 }
 
 

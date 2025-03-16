@@ -5,9 +5,12 @@ from super_quantization.super_quantization import QuantizedLayer
 QUANTIZE_COEFS = {
     "01": 32,
     "_11": 32,
+    "_10": 32,
+    "_0.50.5": 32,
     "_2_112": 16,
     "_2_101": 16,
     "_1012": 16,
+    "_100.51": 16,
 }
 
 

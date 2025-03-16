@@ -29,10 +29,17 @@ train_dataset, validation_dataset, vocab = get_data(
 
 # depths = [2, 4, 8, 16]
 # depths = [1, 2, 3, 4]
-depths = [2]
+depths = [4]
 quant_types = {
     "fc": {"fc_1": "01", "fc_2": "01"},
     "fcv": {"V": "_1012", "fc_1": "01", "fc_2": "01"},
+    # "fc_11": {"fc_1": "_11", "fc_2": "_11"},
+    # "all": {"Q": "_11", "K": "_11", "V": "_11", "O": "_11", "fc_1": "_11", "fc_2": "_11"},
+    # "_10": {"fc_1": "_10", "fc_2": "_10"},
+    # "_0.50.5": {"fc_1": "_0.50.5", "fc_2": "_0.50.5"},
+    # "_2_101": {"V": "_2_101", "fc_1": "01", "fc_2": "01"},
+    # "_2_112": {"V": "_2_112", "fc_1": "01", "fc_2": "01"},
+    # "_100.51": {"V": "_100.51", "fc_1": "01", "fc_2": "01"},
 }
 
 
@@ -51,12 +58,13 @@ def compare_models():
             max_context_size=seq_length,
             lora_ratio=4,
             rope=False,
-            fc_quant_normalisation=True
+            fc_quant_normalisation=True,
+            dropout=0.3,
         ).to(device)
         analyze_model_parameters(model)
         print("Params for base:", sum(p.numel() for p in model.parameters() if p.requires_grad) + model.d_model*(seq_length - vocab_size - 1))
-        # models = {"base": model}
-        models = {}
+        models = {"base": model}
+        # models = {}
 
         for key, qtype in quant_types.items():
             models[key] = sq.quantize(model, qtype, inplace=False)
@@ -115,8 +123,10 @@ def train(model, name, depth):
     train_dataloader = DataLoader(train_dataset, **dataloader_args)
     validation_dataloader = DataLoader(validation_dataset, **dataloader_args)
     recipe = ProgressiveRecipes(model)
-
-    recipe.base_recipe(epochs=10, global_trainning=1, constructive=False)
+    a = (0.0002 - 0.001) / 3
+    b = 0.001 - a
+    lr = a * depth + b
+    recipe.base_recipe(epochs=10, lr=lr, global_trainning=1, constructive=False)
     # if name == "base":
     #     recipe.base_recipe(epochs=400, global_trainning=1, constructive=False)
     #     #  recipe.base_recipe(epochs=1, global_trainning=1, constructive=False)
@@ -124,8 +134,8 @@ def train(model, name, depth):
     #     recipe.base_recipe(epochs=40, iterations=10, global_trainning=0, scaling_factor=1)
     #     # recipe.base_recipe(epochs=1, iterations=1, global_trainning=0, scaling_factor=1)
     trainer = ProgressiveTrainer(recipe)
-    checkpoint_name = f"./checkpoints/{name}/depth_{depth}"
-    res_name = f"./results/{name}/depth_{depth}.pkl"
+    checkpoint_name = f"./checkpoints/{name}/depth_{depth}{'_wiki' if wikipedia else ''}"
+    res_name = f"./results/{name}/depth_{depth}{'_wiki' if wikipedia else ''}.pkl"
     return trainer.train(
         train_dataloader,
         optim.AdamW,

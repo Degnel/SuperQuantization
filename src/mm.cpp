@@ -57,8 +57,22 @@ vector<vector<float>> multiply_bool_float(const vector<vector<bool>>& A, const v
     return result;
 }
 
+vector<vector<float>> multiply_binary_float(const vector<vector<bool>>& A, const vector<vector<float>>& B) {
+    int rows = A.size(), cols = B[0].size(), common_dim = B.size();
+    vector<vector<float>> result(rows, vector<float>(cols, 0));
+
+    for (int i = 0; i < rows; i++) {
+        for (int k = 0; k < common_dim; k++) {
+            int factor = A[i][k] ? 1 : -1;
+            for (int j = 0; j < cols; j++)
+                result[i][j] += factor * B[k][j];
+        }
+    }
+    return result;
+}
+
 int main() {
-    int size = 1000;
+    int size = 500; // Taille de la matrice
 
     vector<vector<float>> A = generate_matrix<float>(size, size, true);
     vector<vector<float>> B = generate_matrix<float>(size, size, true);
@@ -76,6 +90,14 @@ int main() {
     int bxf_time = duration_cast<milliseconds>(stop - start).count();
     cout << "bool x float mm time: " << bxf_time << " ms" << endl;
 
-    cout << "Speed up ratio: " << static_cast<float>(fxf_time) / bxf_time << endl;
+    start = high_resolution_clock::now();
+    auto C3 = multiply_binary_float(B_bool, B);
+    stop = high_resolution_clock::now();
+    int binxf_time = duration_cast<milliseconds>(stop - start).count();
+    cout << "binary {-1,1} x float mm time: " << binxf_time << " ms" << endl;
+
+    cout << "Speed up ratio (bool vs float): " << static_cast<float>(fxf_time) / bxf_time << endl;
+    cout << "Speed up ratio (binary {-1,1} vs float): " << static_cast<float>(fxf_time) / binxf_time << endl;
+
     return 0;
 }
