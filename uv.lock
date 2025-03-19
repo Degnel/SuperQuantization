@@ -462,7 +462,7 @@ dependencies = [
     { name = "ruff" },
     { name = "torch" },
 ]
-sdist = { hash = "sha256:ca4a0400b735ae295efa0803209199d51d01d786d2ff1b3d901342bc47bb1302" }
+sdist = { hash = "sha256:c52428e657f4916f31ddc2afa36da517d5f67e541f0f79247a6148f4ff966b7a" }
 
 [package.metadata]
 requires-dist = [
@@ -489,6 +489,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/8c/e3/7d45f492c2c4a0e8e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/fd/afcd0496feca3276f509df3dbd5dae726fcc756f1a08d9e25abe1733f962/executing-2.1.0-py2.py3-none-any.whl", hash = "sha256:8d63781349375b5ebccc3142f4b30350c0cd9c79f921cde38be2be4637e98eaf", size = 25805 },
 ]
+
+[[package]]
+name = "fairscale"
+version = "0.4.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "torch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c1/08/b3334d7b543ac10dcb129cef4f84723ab696725512f18d69ab3a784b0bf5/fairscale-0.4.13.tar.gz", hash = "sha256:1b797825c427f5dba92253fd0d8daa574e8bd651a2423497775fab1b30cfb768", size = 266261 }
 
 [[package]]
 name = "filelock"
@@ -545,7 +555,7 @@ dependencies = [
     { name = "torch" },
 ]
 wheels = [
-    { filename = "frease-0.1.0-py3-none-any.whl", hash = "sha256:5427158996e78f06e5ab8a65161889aac3af7032d6fc68fa48f0edeceae8664a" },
+    { filename = "frease-0.1.0-py3-none-any.whl", hash = "sha256:c835bf9474949b44fa5368f34aca68ba4e2fb8e45c677ae62d1687ee9a87d9c8" },
 ]
 
 [package.metadata]
@@ -1999,6 +2009,7 @@ dependencies = [
     { name = "black" },
     { name = "datasets" },
     { name = "density" },
+    { name = "fairscale" },
     { name = "frease" },
     { name = "ipykernel" },
     { name = "matplotlib" },
@@ -2016,6 +2027,7 @@ requires-dist = [
     { name = "black", specifier = ">=24.10.0" },
     { name = "datasets", specifier = ">=3.2.0" },
     { name = "density", path = "../Density/dist/density-0.1.0.tar.gz" },
+    { name = "fairscale", specifier = ">=0.4.13" },
     { name = "frease", path = "../FrEase/dist/frease-0.1.0-py3-none-any.whl" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "matplotlib", specifier = ">=3.10.0" },
